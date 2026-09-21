@@ -51,8 +51,8 @@ function LoginForm() {
             {mode === "in" ? "Sign in" : "Create account"}
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Firebase Auth email/password. Roles come from custom claims (
-            admin, agent, viewer ).
+            Firebase Auth email/password. Roles come from custom claims
+            (admin, agent, viewer).
           </p>
         </div>
 

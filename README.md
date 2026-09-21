@@ -150,10 +150,18 @@ firebase deploy --only firestore:rules,firestore:indexes
 | Path | Purpose |
 | --- | --- |
 | `/login` | Email/password sign-in (and optional account create) |
-| `/inbox` | Ticket list + status / assignee filters |
+| `/inbox` | Ticket list sorted by `updatedAt`, filters for status + assignee + title search, primary action **Neues Ticket** |
 | `/tickets/new` | Create a ticket |
-| `/tickets/[id]` | Detail, status/priority/assignee, comments thread |
+| `/tickets/[id]` | Header (editable title + status/priority/assignee), description, comments subcollection thread |
 | `/tickets/preview` | Static layout sample when Firebase is not configured |
+
+Title search is applied client-side on the current result set so it does not need an extra Firestore index.
+
+## Follow-up (not in this skeleton)
+
+- Full German copy / i18n
+- Admin delete control in the UI (`deleteTicket` helper already exists)
+- Board view, Mail-In, Hetzner/Docker hosting
 
 ## Project structure
 

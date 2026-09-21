@@ -37,6 +37,14 @@ function ticketFiltersToConstraints(filters: TicketFilters = {}): QueryConstrain
   return constraints;
 }
 
+export function matchesTitleQuery(ticket: Ticket, titleQuery?: string): boolean {
+  const needle = titleQuery?.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  return ticket.title.toLowerCase().includes(needle);
+}
+
 export async function listTickets(filters: TicketFilters = {}): Promise<Ticket[]> {
   const db = getClientDb();
   const ticketsRef = collection(db, TICKETS_COLLECTION);

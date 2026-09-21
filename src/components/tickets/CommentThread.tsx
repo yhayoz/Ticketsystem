@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Comment } from "@/types";
-import { formatDateTime } from "@/lib/format";
+import { formatRelativeTime, formatDateTime } from "@/lib/format";
 
 type CommentThreadProps = {
   comments: Comment[];
@@ -52,7 +52,9 @@ export function CommentThread({
             >
               <div className="mb-1 flex items-center justify-between gap-2 text-xs text-[var(--muted)]">
                 <span className="font-mono">{comment.authorId}</span>
-                <time>{formatDateTime(comment.createdAt)}</time>
+                <time dateTime={comment.createdAt.toISOString()} title={formatDateTime(comment.createdAt)}>
+                  {formatRelativeTime(comment.createdAt)}
+                </time>
               </div>
               <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
             </li>

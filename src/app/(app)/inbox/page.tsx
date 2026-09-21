@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TicketFiltersBar } from "@/components/tickets/TicketFilters";
 import { TicketList } from "@/components/tickets/TicketList";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMembers, listAssignableMembers } from "@/lib/members";
 import { PREVIEW_TICKET } from "@/lib/preview-data";
-import { listTickets } from "@/lib/tickets";
+import { canWriteTickets } from "@/lib/roles";
+import { listTickets, matchesTitleQuery } from "@/lib/tickets";
 import type { Member, Ticket, TicketFilters } from "@/types";
 
 export default function InboxPage() {
-  const { configured } = useAuth();
+  const { configured, role } = useAuth();
+  const canCreate = !configured || canWriteTickets(role);
   const [filters, setFilters] = useState<TicketFilters>({
     status: "all",
     assigneeId: "all",
+    title: "",
   });
   const [tickets, setTickets] = useState<Ticket[]>(
     configured ? [] : [PREVIEW_TICKET],
@@ -33,7 +36,10 @@ export default function InboxPage() {
     void (async () => {
       try {
         const [nextTickets, nextMembers] = await Promise.all([
-          listTickets(filters),
+          listTickets({
+            status: filters.status,
+            assigneeId: filters.assigneeId,
+          }),
           listMembers(),
         ]);
         if (cancelled) {
@@ -56,7 +62,12 @@ export default function InboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [configured, filters]);
+  }, [configured, filters.assigneeId, filters.status]);
+
+  const visibleTickets = useMemo(
+    () => tickets.filter((ticket) => matchesTitleQuery(ticket, filters.title)),
+    [filters.title, tickets],
+  );
 
   return (
     <div className="space-y-5">
@@ -64,12 +75,14 @@ export default function InboxPage() {
         <div>
           <h1 className="text-xl font-semibold">Inbox</h1>
           <p className="text-sm text-[var(--muted)]">
-            Tickets sorted by last update. Filter by status and assignee.
+            Sorted by last update. Filter by status, assignee, and title.
           </p>
         </div>
-        <Link href="/tickets/new" className="btn-primary">
-          New ticket
-        </Link>
+        {canCreate ? (
+          <Link href="/tickets/new" className="btn-primary">
+            Neues Ticket
+          </Link>
+        ) : null}
       </div>
 
       <TicketFiltersBar
@@ -84,11 +97,11 @@ export default function InboxPage() {
         <p className="text-sm text-[var(--muted)]">Loading tickets…</p>
       ) : (
         <TicketList
-          tickets={tickets}
+          tickets={visibleTickets}
           members={members}
           emptyHint={
             configured
-              ? "No tickets yet. Create one to get started."
+              ? "No tickets match these filters."
               : "Connect Firebase to load live tickets. A preview row is shown below."
           }
         />

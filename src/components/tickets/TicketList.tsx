@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Member, Ticket } from "@/types";
 import { PriorityBadge, StatusBadge } from "@/components/tickets/Badges";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 
 type TicketListProps = {
   tickets: Ticket[];
@@ -38,7 +38,7 @@ export function TicketList({ tickets, members, emptyHint }: TicketListProps) {
               <td className="px-4 py-3">
                 <Link
                   href={`/tickets/${ticket.id}`}
-                  className="font-medium text-[var(--accent)] hover:underline"
+                  className="font-medium text-[var(--ink)] hover:text-[var(--accent)]"
                 >
                   {ticket.title || "Untitled"}
                 </Link>
@@ -55,7 +55,9 @@ export function TicketList({ tickets, members, emptyHint }: TicketListProps) {
                   : "Unassigned"}
               </td>
               <td className="px-4 py-3 text-[var(--muted)]">
-                {formatDateTime(ticket.updatedAt)}
+                <time dateTime={ticket.updatedAt.toISOString()} title={formatDateTime(ticket.updatedAt)}>
+                  {formatRelativeTime(ticket.updatedAt)}
+                </time>
               </td>
             </tr>
           ))}

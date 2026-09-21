@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listAssignableMembers, listMembers } from "@/lib/members";
@@ -72,7 +73,10 @@ export default function NewTicketPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-xl font-semibold">New ticket</h1>
+        <Link href="/inbox" className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
+          ← Inbox
+        </Link>
+        <h1 className="mt-2 text-xl font-semibold">Neues Ticket</h1>
         <p className="text-sm text-[var(--muted)]">
           Creates a document in the <code>tickets</code> collection.
         </p>
@@ -150,7 +154,7 @@ export default function NewTicketPage() {
         </div>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
         <button type="submit" className="btn-primary" disabled={!canWrite || saving}>
-          {saving ? "Creating…" : "Create ticket"}
+          {saving ? "Creating…" : "Neues Ticket"}
         </button>
       </form>
     </div>

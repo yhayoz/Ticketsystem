@@ -15,6 +15,18 @@ export function TicketFiltersBar({
 }: TicketFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-3">
+      <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs text-[var(--muted)]">
+        Title
+        <input
+          className="field"
+          type="search"
+          placeholder="Search title…"
+          value={filters.title ?? ""}
+          onChange={(event) =>
+            onChange({ ...filters, title: event.target.value })
+          }
+        />
+      </label>
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Status
         <select

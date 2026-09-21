@@ -43,4 +43,6 @@ export type TicketUpdates = Partial<
 export type TicketFilters = {
   status?: TicketStatus | "all";
   assigneeId?: string | "all" | "unassigned";
+  /** Client-side title search; not sent to Firestore. */
+  title?: string;
 };

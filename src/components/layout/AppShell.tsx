@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { roleLabel } from "@/lib/format";
+import { canWriteTickets } from "@/lib/roles";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, role, configured, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const canCreate = !configured || canWriteTickets(role);
 
   async function onSignOut() {
     await signOut();
@@ -27,12 +29,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <NavLink href="/inbox" active={pathname === "/inbox"}>
                 Inbox
               </NavLink>
-              <NavLink
-                href="/tickets/new"
-                active={pathname === "/tickets/new"}
-              >
-                New ticket
-              </NavLink>
+              {canCreate ? (
+                <NavLink
+                  href="/tickets/new"
+                  active={pathname === "/tickets/new"}
+                >
+                  Neues Ticket
+                </NavLink>
+              ) : null}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
