@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { TicketFiltersBar } from "@/components/tickets/TicketFilters";
+import { TicketList } from "@/components/tickets/TicketList";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { listMembers, listAssignableMembers } from "@/lib/members";
+import { PREVIEW_TICKET } from "@/lib/preview-data";
+import { canWriteTickets } from "@/lib/roles";
+import { listTickets, matchesTitleQuery } from "@/lib/tickets";
+import type { Member, Ticket, TicketFilters } from "@/types";
+
+export default function InboxPage() {
+  const { configured, role } = useAuth();
+  const canCreate = !configured || canWriteTickets(role);
+  const [filters, setFilters] = useState<TicketFilters>({
+    status: "all",
+    assigneeId: "all",
+    title: "",
+  });
+  const [tickets, setTickets] = useState<Ticket[]>(
+    configured ? [] : [PREVIEW_TICKET],
+  );
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(configured);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!configured) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [nextTickets, nextMembers] = await Promise.all([
+          listTickets({
+            status: filters.status,
+            assigneeId: filters.assigneeId,
+          }),
+          listMembers(),
+        ]);
+        if (cancelled) {
+          return;
+        }
+        setTickets(nextTickets);
+        setMembers(listAssignableMembers(nextMembers));
+        setError(null);
+        setLoading(false);
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to load tickets.");
+        setTickets([]);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [configured, filters.assigneeId, filters.status]);
+
+  const visibleTickets = useMemo(
+    () => tickets.filter((ticket) => matchesTitleQuery(ticket, filters.title)),
+    [filters.title, tickets],
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Inbox</h1>
+          <p className="text-sm text-[var(--muted)]">
+            Sorted by last update. Filter by status, assignee, and title.
+          </p>
+        </div>
+        {canCreate ? (
+          <Link href="/tickets/new" className="btn-primary">
+            Neues Ticket
+          </Link>
+        ) : null}
+      </div>
+
+      <TicketFiltersBar
+        filters={filters}
+        members={members}
+        onChange={setFilters}
+      />
+
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+
+      {loading ? (
+        <p className="text-sm text-[var(--muted)]">Loading tickets…</p>
+      ) : (
+        <TicketList
+          tickets={visibleTickets}
+          members={members}
+          emptyHint={
+            configured
+              ? "No tickets match these filters."
+              : "Connect Firebase to load live tickets. A preview row is shown below."
+          }
+        />
+      )}
+
+      {!configured ? (
+        <p className="text-xs text-[var(--muted)]">
+          Layout preview uses a sample ticket. Open{" "}
+          <Link href="/tickets/preview" className="text-[var(--accent)] hover:underline">
+            /tickets/preview
+          </Link>{" "}
+          for the detail view.
+        </p>
+      ) : null}
+    </div>
+  );
+}
