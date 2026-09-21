@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { listAssignableMembers, listMembers } from "@/lib/members";
+import { canWriteTickets } from "@/lib/roles";
+import { createTicket } from "@/lib/tickets";
+import {
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  type Member,
+  type TicketPriority,
+  type TicketStatus,
+} from "@/types";
+import { priorityLabel, statusLabel } from "@/lib/format";
+
+export default function NewTicketPage() {
+  const router = useRouter();
+  const { user, role, configured } = useAuth();
+  const canWrite = !configured || canWriteTickets(role);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<TicketStatus>("open");
+  const [priority, setPriority] = useState<TicketPriority>("medium");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!configured) {
+      return;
+    }
+    void listMembers()
+      .then((next) => setMembers(listAssignableMembers(next)))
+      .catch(() => setMembers([]));
+  }, [configured]);
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!canWrite) {
+      setError("Your role cannot create tickets.");
+      return;
+    }
+    if (!configured || !user) {
+      setError("Firebase is not configured. Add env vars to create tickets.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const id = await createTicket(
+        {
+          title,
+          description,
+          status,
+          priority,
+          assigneeId: assigneeId || null,
+        },
+        user.uid,
+      );
+      router.push(`/tickets/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create ticket.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-5">
+      <div>
+        <h1 className="text-xl font-semibold">New ticket</h1>
+        <p className="text-sm text-[var(--muted)]">
+          Creates a document in the <code>tickets</code> collection.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
+        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          Title
+          <input
+            className="field"
+            required
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            disabled={!canWrite || saving}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          Description
+          <textarea
+            className="field min-h-32"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            disabled={!canWrite || saving}
+          />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            Status
+            <select
+              className="field"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as TicketStatus)}
+              disabled={!canWrite || saving}
+            >
+              {TICKET_STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {statusLabel(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            Priority
+            <select
+              className="field"
+              value={priority}
+              onChange={(event) =>
+                setPriority(event.target.value as TicketPriority)
+              }
+              disabled={!canWrite || saving}
+            >
+              {TICKET_PRIORITIES.map((value) => (
+                <option key={value} value={value}>
+                  {priorityLabel(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            Assignee
+            <select
+              className="field"
+              value={assigneeId}
+              onChange={(event) => setAssigneeId(event.target.value)}
+              disabled={!canWrite || saving}
+            >
+              <option value="">Unassigned</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        <button type="submit" className="btn-primary" disabled={!canWrite || saving}>
+          {saving ? "Creating…" : "Create ticket"}
+        </button>
+      </form>
+    </div>
+  );
+}

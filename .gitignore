@@ -1,0 +1,63 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+*.p12
+*.key
+*.p8
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — never commit secrets
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# Firebase / Google credentials and admin keys
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*service-account*.json
+*-credentials.json
+google-services.json
+GoogleService-Info.plist
+**/secrets/**
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
