@@ -7,13 +7,14 @@ import { TicketList } from "@/components/tickets/TicketList";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMembers, listAssignableMembers } from "@/lib/members";
 import { PREVIEW_TICKET } from "@/lib/preview-data";
-import { canWriteTickets } from "@/lib/roles";
+import { withPreviewRole } from "@/lib/preview-role";
+import { canUseWriteChrome } from "@/lib/roles";
 import { listTickets, matchesTitleQuery } from "@/lib/tickets";
 import type { Member, Ticket, TicketFilters } from "@/types";
 
 export default function InboxPage() {
   const { configured, role } = useAuth();
-  const canCreate = !configured || canWriteTickets(role);
+  const canCreate = canUseWriteChrome(role, configured);
   const [filters, setFilters] = useState<TicketFilters>({
     status: "all",
     assigneeId: "all",
@@ -69,6 +70,16 @@ export default function InboxPage() {
     [filters.title, tickets],
   );
 
+  const hasActiveFilters =
+    (filters.status ?? "all") !== "all" ||
+    (filters.assigneeId ?? "all") !== "all" ||
+    Boolean(filters.title?.trim());
+
+  const emptyHint =
+    tickets.length === 0 && !hasActiveFilters
+      ? "Noch keine Tickets."
+      : "Keine Tickets passen zu diesen Filtern.";
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -79,7 +90,7 @@ export default function InboxPage() {
           </p>
         </div>
         {canCreate ? (
-          <Link href="/tickets/new" className="btn-primary">
+          <Link href={withPreviewRole("/tickets/new", role, configured)} className="btn-primary">
             Neues Ticket
           </Link>
         ) : null}
@@ -99,10 +110,14 @@ export default function InboxPage() {
         <TicketList
           tickets={visibleTickets}
           members={members}
-          emptyHint={
-            configured
-              ? "No tickets match these filters."
-              : "Connect Firebase to load live tickets. A preview row is shown below."
+          emptyHint={emptyHint}
+          ticketHref={(id) => withPreviewRole(`/tickets/${id}`, role, configured)}
+          emptyAction={
+            canCreate ? (
+              <Link href={withPreviewRole("/tickets/new", role, configured)} className="btn-primary">
+                Neues Ticket
+              </Link>
+            ) : null
           }
         />
       )}
@@ -110,7 +125,7 @@ export default function InboxPage() {
       {!configured ? (
         <p className="text-xs text-[var(--muted)]">
           Layout preview uses a sample ticket. Open{" "}
-          <Link href="/tickets/preview" className="text-[var(--accent)] hover:underline">
+          <Link href={withPreviewRole("/tickets/preview", role, configured)} className="text-[var(--accent)] hover:underline">
             /tickets/preview
           </Link>{" "}
           for the detail view.

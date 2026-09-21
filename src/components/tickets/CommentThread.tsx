@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Comment } from "@/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatRelativeTime, formatDateTime } from "@/lib/format";
 
 type CommentThreadProps = {
@@ -20,10 +21,11 @@ export function CommentThread({
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!body.trim()) {
+    if (!body.trim() || disabled) {
       return;
     }
     setSaving(true);
@@ -38,11 +40,25 @@ export function CommentThread({
     }
   }
 
+  function focusComposer() {
+    composerRef.current?.focus();
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
     <section className="space-y-4">
-      <h2 className="text-sm font-semibold">Comments</h2>
+      <h2 className="text-sm font-semibold">Kommentare</h2>
       {comments.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">No comments yet.</p>
+        <EmptyState
+          message="Noch keine Kommentare."
+          action={
+            canWrite ? (
+              <button type="button" className="btn-primary" onClick={focusComposer}>
+                Ersten Kommentar schreiben
+              </button>
+            ) : null
+          }
+        />
       ) : (
         <ol className="space-y-3">
           {comments.map((comment) => (
@@ -64,13 +80,15 @@ export function CommentThread({
       {canWrite ? (
         <form onSubmit={handleSubmit} className="space-y-2">
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Add a comment
+            Kommentar
             <textarea
+              id="comment-composer"
+              ref={composerRef}
               className="field min-h-24"
               value={body}
-              disabled={disabled || saving}
+              disabled={saving}
               onChange={(event) => setBody(event.target.value)}
-              placeholder="Write an update…"
+              placeholder="Update schreiben…"
             />
           </label>
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -79,12 +97,12 @@ export function CommentThread({
             className="btn-primary"
             disabled={disabled || saving || !body.trim()}
           >
-            {saving ? "Posting…" : "Post comment"}
+            {saving ? "Wird gesendet…" : "Kommentar senden"}
           </button>
         </form>
       ) : (
         <p className="text-xs text-[var(--muted)]">
-          Viewers can read the thread but cannot comment.
+          Viewer können den Verlauf lesen, aber nicht kommentieren.
         </p>
       )}
     </section>

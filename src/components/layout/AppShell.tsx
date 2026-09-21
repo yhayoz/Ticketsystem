@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { roleLabel } from "@/lib/format";
-import { canWriteTickets } from "@/lib/roles";
+import { withPreviewRole } from "@/lib/preview-role";
+import { canUseWriteChrome } from "@/lib/roles";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, role, configured, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const canCreate = !configured || canWriteTickets(role);
+  const canCreate = canUseWriteChrome(role, configured);
 
   async function onSignOut() {
     await signOut();
@@ -22,16 +23,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-[var(--line)] bg-[var(--surface)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-6">
-            <Link href="/inbox" className="text-sm font-semibold tracking-tight">
+            <Link href={withPreviewRole("/inbox", role, configured)} className="text-sm font-semibold tracking-tight">
               Ticketsystem
             </Link>
             <nav className="flex items-center gap-3 text-sm">
-              <NavLink href="/inbox" active={pathname === "/inbox"}>
+              <NavLink href={withPreviewRole("/inbox", role, configured)} active={pathname === "/inbox"}>
                 Inbox
               </NavLink>
               {canCreate ? (
                 <NavLink
-                  href="/tickets/new"
+                  href={withPreviewRole("/tickets/new", role, configured)}
                   active={pathname === "/tickets/new"}
                 >
                   Neues Ticket
@@ -54,7 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </>
             ) : (
-              <span>Preview mode · Firebase not configured</span>
+              <span>
+                Preview mode · {roleLabel(role)}
+              </span>
             )}
           </div>
         </div>
@@ -63,7 +66,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-950">
           Copy <code className="font-mono">.env.example</code> to{" "}
           <code className="font-mono">.env.local</code> and add Firebase keys to
-          enable auth and Firestore.
+          enable auth and Firestore. Preview-Rolle:{" "}
+          <Link
+            href={`${pathname}?role=agent`}
+            className={role === "agent" ? "font-medium underline" : "underline"}
+          >
+            Agent
+          </Link>
+          {" · "}
+          <Link
+            href={`${pathname}?role=viewer`}
+            className={role === "viewer" ? "font-medium underline" : "underline"}
+          >
+            Viewer
+          </Link>
         </div>
       ) : null}
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

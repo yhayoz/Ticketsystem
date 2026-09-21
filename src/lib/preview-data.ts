@@ -14,12 +14,5 @@ export const PREVIEW_TICKET: Ticket = {
   updatedAt: new Date("2026-09-21T08:30:00.000Z"),
 };
 
-export const PREVIEW_COMMENTS: Comment[] = [
-  {
-    id: "c1",
-    ticketId: "preview",
-    body: "I will check after the morning conference.",
-    authorId: "preview-agent",
-    createdAt: new Date("2026-09-21T07:15:00.000Z"),
-  },
-];
+/** Empty in preview so the detail empty-state CTA is visible. */
+export const PREVIEW_COMMENTS: Comment[] = [];

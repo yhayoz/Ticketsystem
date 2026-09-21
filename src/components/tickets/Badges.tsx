@@ -1,39 +1,52 @@
+import { priorityLabel, statusLabel } from "@/lib/format";
 import type { TicketPriority, TicketStatus } from "@/types";
 
+const BADGE_BASE =
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium leading-none";
+
 const STATUS_CLASS: Record<TicketStatus, string> = {
-  open: "bg-blue-50 text-blue-800",
-  in_progress: "bg-amber-50 text-amber-800",
-  done: "bg-emerald-50 text-emerald-800",
-  closed: "bg-zinc-100 text-zinc-700",
+  open: "border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,white)] text-[var(--accent)]",
+  in_progress:
+    "border-[var(--line)] bg-[var(--bg)] text-[var(--ink)]",
+  done: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
+  closed: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
 };
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
-  low: "bg-zinc-100 text-zinc-700",
-  medium: "bg-sky-50 text-sky-800",
-  high: "bg-orange-50 text-orange-800",
-  urgent: "bg-red-50 text-red-800",
+  low: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
+  medium: "border-[var(--line)] bg-[var(--bg)] text-[var(--ink)]",
+  high: "border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,white)] text-[var(--accent)]",
+  urgent: "border-[var(--accent)] bg-[var(--accent)] text-white",
 };
 
 export function StatusBadge({ status }: { status: TicketStatus }) {
-  const label =
-    status === "in_progress"
-      ? "In progress"
-      : status.charAt(0).toUpperCase() + status.slice(1);
   return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[status]}`}
-    >
-      {label}
+    <span className={`${BADGE_BASE} ${STATUS_CLASS[status]}`}>
+      {statusLabel(status)}
     </span>
   );
 }
 
 export function PriorityBadge({ priority }: { priority: TicketPriority }) {
   return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_CLASS[priority]}`}
-    >
-      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+    <span className={`${BADGE_BASE} ${PRIORITY_CLASS[priority]}`}>
+      {priorityLabel(priority)}
     </span>
+  );
+}
+
+/** Shared status → priority cluster for list rows and the detail header. */
+export function TicketBadges({
+  status,
+  priority,
+}: {
+  status: TicketStatus;
+  priority: TicketPriority;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <StatusBadge status={status} />
+      <PriorityBadge priority={priority} />
+    </div>
   );
 }

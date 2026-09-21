@@ -12,6 +12,14 @@ export function canWriteTickets(role: UserRole | null): boolean {
   return role === "admin" || role === "agent";
 }
 
+/** Preview defaults to agent; a viewer role is always read-only. */
+export function canUseWriteChrome(
+  role: UserRole | null,
+  configured: boolean,
+): boolean {
+  return canWriteTickets(configured ? role : (role ?? "agent"));
+}
+
 export function canAssignTickets(role: UserRole | null): boolean {
   return canWriteTickets(role);
 }
