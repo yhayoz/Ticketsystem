@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { addComment, listComments } from "@/lib/comments";
 import { formatDateTime, priorityLabel, statusLabel } from "@/lib/format";
 import { listAssignableMembers, listMembers } from "@/lib/members";
-import { PREVIEW_COMMENTS, PREVIEW_TICKET } from "@/lib/preview-data";
+import { PREVIEW_COMMENTS, PREVIEW_TICKET, previewTicketById } from "@/lib/preview-data";
 import { withPreviewRole } from "@/lib/preview-role";
 import { canAssignTickets, canUseWriteChrome } from "@/lib/roles";
 import { getTicket, updateTicket } from "@/lib/tickets";
@@ -28,12 +28,14 @@ export default function TicketDetailPage() {
   const ticketId = params.id;
   const router = useRouter();
   const { user, role, configured } = useAuth();
-  const isPreview = ticketId === "preview" || !configured;
+  const matchedPreview = previewTicketById(ticketId);
+  const isPreview =
+    Boolean(matchedPreview) || ticketId === "preview" || !configured;
   const canEdit = canUseWriteChrome(role, configured);
   const canAssign = canEdit && (!configured || canAssignTickets(role));
 
   const [ticket, setTicket] = useState<Ticket | null>(
-    isPreview ? PREVIEW_TICKET : null,
+    isPreview ? (matchedPreview ?? PREVIEW_TICKET) : null,
   );
   const [comments, setComments] = useState<Comment[]>(
     isPreview ? PREVIEW_COMMENTS : [],

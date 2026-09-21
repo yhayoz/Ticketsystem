@@ -14,5 +14,40 @@ export const PREVIEW_TICKET: Ticket = {
   updatedAt: new Date("2026-09-21T08:30:00.000Z"),
 };
 
+export const PREVIEW_TICKET_DONE: Ticket = {
+  id: "preview-done",
+  title: "Press badges printed for Monday",
+  description: "All visitor badges for the Monday briefing are ready.",
+  status: "done",
+  priority: "medium",
+  assigneeId: null,
+  createdBy: "preview-user",
+  createdAt: new Date("2026-09-19T11:00:00.000Z"),
+  updatedAt: new Date("2026-09-21T07:10:00.000Z"),
+};
+
+export const PREVIEW_TICKET_CLOSED: Ticket = {
+  id: "preview-closed",
+  title: "Old CMS login reset",
+  description: "No longer needed after the CMS cutover. Kept for the audit trail.",
+  status: "closed",
+  priority: "low",
+  assigneeId: null,
+  createdBy: "preview-user",
+  createdAt: new Date("2026-09-18T14:00:00.000Z"),
+  updatedAt: new Date("2026-09-20T16:45:00.000Z"),
+};
+
+/** Inbox preview rows — includes both `done` and `closed` so those badges stay visible. */
+export const PREVIEW_TICKETS: Ticket[] = [
+  PREVIEW_TICKET,
+  PREVIEW_TICKET_DONE,
+  PREVIEW_TICKET_CLOSED,
+];
+
+export function previewTicketById(id: string): Ticket | undefined {
+  return PREVIEW_TICKETS.find((ticket) => ticket.id === id);
+}
+
 /** Empty in preview so the detail empty-state CTA is visible. */
 export const PREVIEW_COMMENTS: Comment[] = [];

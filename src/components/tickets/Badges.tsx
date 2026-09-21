@@ -8,7 +8,7 @@ const STATUS_CLASS: Record<TicketStatus, string> = {
   open: "border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,white)] text-[var(--accent)]",
   in_progress:
     "border-[var(--line)] bg-[var(--bg)] text-[var(--ink)]",
-  done: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
+  done: "border-[var(--ink)]/15 bg-[var(--surface)] text-[var(--ink)]",
   closed: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
 };
 
@@ -21,7 +21,7 @@ const PRIORITY_CLASS: Record<TicketPriority, string> = {
 
 export function StatusBadge({ status }: { status: TicketStatus }) {
   return (
-    <span className={`${BADGE_BASE} ${STATUS_CLASS[status]}`}>
+    <span className={`${BADGE_BASE} ${STATUS_CLASS[status] ?? STATUS_CLASS.open}`}>
       {statusLabel(status)}
     </span>
   );

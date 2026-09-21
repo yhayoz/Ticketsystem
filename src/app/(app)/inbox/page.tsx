@@ -6,7 +6,7 @@ import { TicketFiltersBar } from "@/components/tickets/TicketFilters";
 import { TicketList } from "@/components/tickets/TicketList";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listMembers, listAssignableMembers } from "@/lib/members";
-import { PREVIEW_TICKET } from "@/lib/preview-data";
+import { PREVIEW_TICKETS } from "@/lib/preview-data";
 import { withPreviewRole } from "@/lib/preview-role";
 import { canUseWriteChrome } from "@/lib/roles";
 import { listTickets, matchesTitleQuery } from "@/lib/tickets";
@@ -21,7 +21,7 @@ export default function InboxPage() {
     title: "",
   });
   const [tickets, setTickets] = useState<Ticket[]>(
-    configured ? [] : [PREVIEW_TICKET],
+    configured ? [] : PREVIEW_TICKETS,
   );
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(configured);
