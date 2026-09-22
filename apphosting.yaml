@@ -7,16 +7,18 @@
 # Other supported locations: us-central1, us-east4, us-east5, asia-east1, asia-southeast1.
 # Firebase project: ticketsystem-570a1
 #
-# Expected Cloud Secret Manager names (values live in Secret Manager, not in git):
-#   FIREBASE_API_KEY
-#   FIREBASE_AUTH_DOMAIN
-#   FIREBASE_PROJECT_ID
-#   FIREBASE_STORAGE_BUCKET
-#   FIREBASE_MESSAGING_SENDER_ID
-#   FIREBASE_APP_ID
-#   FIREBASE_ADMIN_PROJECT_ID
-#   FIREBASE_ADMIN_CLIENT_EMAIL
-#   FIREBASE_ADMIN_PRIVATE_KEY
+# Expected Cloud Secret Manager names (values live in Secret Manager, not in git).
+# App Hosting reserves the FIREBASE_ secret-id prefix, so these ids use TICKETS_*.
+# The variable: names below stay NEXT_PUBLIC_FIREBASE_* and FIREBASE_ADMIN_*.
+#   TICKETS_API_KEY
+#   TICKETS_AUTH_DOMAIN
+#   TICKETS_PROJECT_ID
+#   TICKETS_STORAGE_BUCKET
+#   TICKETS_MESSAGING_SENDER_ID
+#   TICKETS_APP_ID
+#   TICKETS_ADMIN_PROJECT_ID
+#   TICKETS_ADMIN_CLIENT_EMAIL
+#   TICKETS_ADMIN_PRIVATE_KEY
 #
 # Create them in the Firebase console (App Hosting → Settings → Environment)
 # or with: firebase apphosting:secrets:set SECRET_NAME --project ticketsystem-570a1
@@ -34,55 +36,55 @@ runConfig:
   maxInstances: 4
 
 env:
-  # --- Client (browser). Secret names omit the NEXT_PUBLIC_ prefix. ---
+  # --- Client (browser). Secret ids use TICKETS_* (FIREBASE_ is reserved). ---
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    secret: FIREBASE_API_KEY
+    secret: TICKETS_API_KEY
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    secret: FIREBASE_AUTH_DOMAIN
+    secret: TICKETS_AUTH_DOMAIN
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    secret: FIREBASE_PROJECT_ID
+    secret: TICKETS_PROJECT_ID
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    secret: FIREBASE_STORAGE_BUCKET
+    secret: TICKETS_STORAGE_BUCKET
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    secret: FIREBASE_MESSAGING_SENDER_ID
+    secret: TICKETS_MESSAGING_SENDER_ID
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    secret: FIREBASE_APP_ID
+    secret: TICKETS_APP_ID
     availability:
       - BUILD
       - RUNTIME
 
   # --- Admin SDK (server only). Never use a NEXT_PUBLIC_ name for these. ---
   - variable: FIREBASE_ADMIN_PROJECT_ID
-    secret: FIREBASE_ADMIN_PROJECT_ID
+    secret: TICKETS_ADMIN_PROJECT_ID
     availability:
       - RUNTIME
 
   - variable: FIREBASE_ADMIN_CLIENT_EMAIL
-    secret: FIREBASE_ADMIN_CLIENT_EMAIL
+    secret: TICKETS_ADMIN_CLIENT_EMAIL
     availability:
       - RUNTIME
 
   - variable: FIREBASE_ADMIN_PRIVATE_KEY
-    secret: FIREBASE_ADMIN_PRIVATE_KEY
+    secret: TICKETS_ADMIN_PRIVATE_KEY
     availability:
       - RUNTIME
