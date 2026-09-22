@@ -74,18 +74,20 @@ Node.js is selected on the backend (use the recommended current runtime; this ap
 
 Only `NEXT_PUBLIC_*` values may appear in the browser. App Hosting inlines them at **build** time, so they are available at **BUILD** and **RUNTIME**. `FIREBASE_ADMIN_*` stays on the server and is **RUNTIME** only. The image build does not need Admin credentials.
 
+App Hosting reserves the `FIREBASE_` prefix for Secret Manager ids (`Key FIREBASE_API_KEY starts with a reserved prefix`). Secret ids therefore use `TICKETS_*`. The `variable:` names in `apphosting.yaml` stay `NEXT_PUBLIC_FIREBASE_*` and `FIREBASE_ADMIN_*`.
+
 Set each secret in the console (**App Hosting → backend → Settings → Environment**) or with the CLI (from this repo, Firebase CLI 13.15.4+):
 
 ```bash
-firebase apphosting:secrets:set FIREBASE_API_KEY --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_AUTH_DOMAIN --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_PROJECT_ID --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_STORAGE_BUCKET --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_MESSAGING_SENDER_ID --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_APP_ID --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_ADMIN_PROJECT_ID --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_ADMIN_CLIENT_EMAIL --project ticketsystem-570a1
-firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_API_KEY --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_AUTH_DOMAIN --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_PROJECT_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_STORAGE_BUCKET --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_MESSAGING_SENDER_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_APP_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_ADMIN_PROJECT_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_ADMIN_CLIENT_EMAIL --project ticketsystem-570a1
+firebase apphosting:secrets:set TICKETS_ADMIN_PRIVATE_KEY --project ticketsystem-570a1
 ```
 
 Grant the App Hosting backend access if you created the secrets outside that flow:
@@ -96,17 +98,17 @@ firebase apphosting:secrets:grantaccess --project ticketsystem-570a1
 
 | App variable | Secret Manager name | Availability |
 | --- | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | `FIREBASE_API_KEY` | BUILD + RUNTIME |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `FIREBASE_AUTH_DOMAIN` | BUILD + RUNTIME |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `FIREBASE_PROJECT_ID` | BUILD + RUNTIME |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `FIREBASE_STORAGE_BUCKET` | BUILD + RUNTIME |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `FIREBASE_MESSAGING_SENDER_ID` | BUILD + RUNTIME |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | `FIREBASE_APP_ID` | BUILD + RUNTIME |
-| `FIREBASE_ADMIN_PROJECT_ID` | `FIREBASE_ADMIN_PROJECT_ID` | RUNTIME |
-| `FIREBASE_ADMIN_CLIENT_EMAIL` | `FIREBASE_ADMIN_CLIENT_EMAIL` | RUNTIME |
-| `FIREBASE_ADMIN_PRIVATE_KEY` | `FIREBASE_ADMIN_PRIVATE_KEY` | RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `TICKETS_API_KEY` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `TICKETS_AUTH_DOMAIN` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `TICKETS_PROJECT_ID` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `TICKETS_STORAGE_BUCKET` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `TICKETS_MESSAGING_SENDER_ID` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `TICKETS_APP_ID` | BUILD + RUNTIME |
+| `FIREBASE_ADMIN_PROJECT_ID` | `TICKETS_ADMIN_PROJECT_ID` | RUNTIME |
+| `FIREBASE_ADMIN_CLIENT_EMAIL` | `TICKETS_ADMIN_CLIENT_EMAIL` | RUNTIME |
+| `FIREBASE_ADMIN_PRIVATE_KEY` | `TICKETS_ADMIN_PRIVATE_KEY` | RUNTIME |
 
-For `FIREBASE_ADMIN_PRIVATE_KEY`, store the service-account PEM. Real newlines are fine; a single line with `\n` escapes is also fine — the server turns those escapes into newlines. Do not prefix Admin secrets with `NEXT_PUBLIC_`.
+For `TICKETS_ADMIN_PRIVATE_KEY` (env `FIREBASE_ADMIN_PRIVATE_KEY`), store the service-account PEM. Real newlines are fine; a single line with `\n` escapes is also fine — the server turns those escapes into newlines. Do not prefix Admin secrets with `NEXT_PUBLIC_`.
 
 Client secrets must exist before the first rollout, or the browser bundle is built without Firebase config. After secrets change, push to `main` (or start a rollout in the console) so a new build picks them up.
 
