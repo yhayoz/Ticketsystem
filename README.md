@@ -51,6 +51,65 @@ Copy `.env.example` → `.env.local`. Never commit real keys (`.env*` and servic
 
 Create a web app in the Firebase console for the `NEXT_PUBLIC_*` values. Create a service account (Firebase Admin SDK) for the `FIREBASE_ADMIN_*` values. Do not put Admin keys in `NEXT_PUBLIC_*` variables.
 
+## Firebase App Hosting
+
+Production deploys use **Firebase App Hosting** (Cloud Run + Cloud Build) for this Next.js app. That is separate from classic Firebase Hosting. `firebase.json` only deploys Firestore rules and indexes. Runtime settings and secret references live in `apphosting.yaml`. Do not commit `.env.local`, real keys, or a service-account JSON file.
+
+**Region:** App Hosting does not offer `europe-west6` (Zurich). When creating the backend, choose **`europe-west4` (Netherlands)** — the closest supported region. Other locations are `us-central1`, `us-east4`, `us-east5`, `asia-east1`, and `asia-southeast1`. The region is set on the backend, not in `apphosting.yaml`.
+
+Firebase project: `ticketsystem-570a1`.
+
+### Create the backend
+
+1. Open the [Firebase console](https://console.firebase.google.com/) for project `ticketsystem-570a1`.
+2. Go to **Hosting & Serverless → App Hosting** and choose **Create backend** (or **Get started** for the first backend).
+3. Region: **`europe-west4`**.
+4. Connect the GitHub repository **`yhayoz/Ticketsystem`** (install the Firebase GitHub app if prompted).
+5. Live branch: **`main`**. App root directory: **`/`**.
+6. Leave **automatic rollouts** enabled. A push to `main` builds and rolls out a new revision.
+
+Node.js is selected on the backend (use the recommended current runtime; this app expects Node 20+). `apphosting.yaml` sets a small Cloud Run shape: 1 vCPU, 512 MiB, concurrency 80, scale from 0 to 4 instances.
+
+### Secrets
+
+Only `NEXT_PUBLIC_*` values may appear in the browser. App Hosting inlines them at **build** time, so they are available at **BUILD** and **RUNTIME**. `FIREBASE_ADMIN_*` stays on the server and is **RUNTIME** only. The image build does not need Admin credentials.
+
+Set each secret in the console (**App Hosting → backend → Settings → Environment**) or with the CLI (from this repo, Firebase CLI 13.15.4+):
+
+```bash
+firebase apphosting:secrets:set FIREBASE_API_KEY --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_AUTH_DOMAIN --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_PROJECT_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_STORAGE_BUCKET --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_MESSAGING_SENDER_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_APP_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_ADMIN_PROJECT_ID --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_ADMIN_CLIENT_EMAIL --project ticketsystem-570a1
+firebase apphosting:secrets:set FIREBASE_ADMIN_PRIVATE_KEY --project ticketsystem-570a1
+```
+
+Grant the App Hosting backend access if you created the secrets outside that flow:
+
+```bash
+firebase apphosting:secrets:grantaccess --project ticketsystem-570a1
+```
+
+| App variable | Secret Manager name | Availability |
+| --- | --- | --- |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `FIREBASE_API_KEY` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `FIREBASE_AUTH_DOMAIN` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `FIREBASE_PROJECT_ID` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `FIREBASE_STORAGE_BUCKET` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `FIREBASE_MESSAGING_SENDER_ID` | BUILD + RUNTIME |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `FIREBASE_APP_ID` | BUILD + RUNTIME |
+| `FIREBASE_ADMIN_PROJECT_ID` | `FIREBASE_ADMIN_PROJECT_ID` | RUNTIME |
+| `FIREBASE_ADMIN_CLIENT_EMAIL` | `FIREBASE_ADMIN_CLIENT_EMAIL` | RUNTIME |
+| `FIREBASE_ADMIN_PRIVATE_KEY` | `FIREBASE_ADMIN_PRIVATE_KEY` | RUNTIME |
+
+For `FIREBASE_ADMIN_PRIVATE_KEY`, store the service-account PEM. Real newlines are fine; a single line with `\n` escapes is also fine — the server turns those escapes into newlines. Do not prefix Admin secrets with `NEXT_PUBLIC_`.
+
+Client secrets must exist before the first rollout, or the browser bundle is built without Firebase config. After secrets change, push to `main` (or start a rollout in the console) so a new build picks them up.
+
 ## Auth and roles
 
 1. Enable **Email/Password** in Firebase Authentication.
@@ -175,6 +234,7 @@ src/lib/members.ts       Optional members listing
 src/types/               Ticket, Comment, Member, Role
 firestore.rules          Role-based access sketch
 firestore.indexes.json   Composite indexes above
+apphosting.yaml          Firebase App Hosting runtime + secret refs
 ```
 
 ## Scripts
