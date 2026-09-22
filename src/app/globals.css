@@ -52,6 +52,46 @@ code,
   cursor: not-allowed;
 }
 
+.field-overdue {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+.field-soon {
+  border-color: #d97706;
+  color: #92400e;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  padding: 0.5rem 0.875rem;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--bg);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, white);
+  color: var(--accent);
+}
+
+.chip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;

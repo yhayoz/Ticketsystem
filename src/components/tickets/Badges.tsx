@@ -1,3 +1,4 @@
+import { dueTone, dueToneLabel, formatDueDate } from "@/lib/due";
 import { priorityLabel, statusLabel } from "@/lib/format";
 import type { TicketPriority, TicketStatus } from "@/types";
 
@@ -32,6 +33,31 @@ export function PriorityBadge({ priority }: { priority: TicketPriority }) {
     <span className={`${BADGE_BASE} ${PRIORITY_CLASS[priority]}`}>
       {priorityLabel(priority)}
     </span>
+  );
+}
+
+const DUE_CLASS = {
+  overdue: "border-red-200 bg-red-50 text-red-700",
+  soon: "border-amber-300 bg-amber-50 text-amber-900",
+  neutral: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
+} as const;
+
+/** Inbox and read-only detail: red overdue, amber within 48h, otherwise neutral. */
+export function DueBadge({ dueAt }: { dueAt: Date | null }) {
+  const tone = dueTone(dueAt);
+  if (tone === "none" || !dueAt) {
+    return <span className="text-[var(--muted)]">—</span>;
+  }
+  const label = dueToneLabel(tone);
+  return (
+    <time
+      dateTime={dueAt.toISOString()}
+      title={label ?? undefined}
+      className={`${BADGE_BASE} ${DUE_CLASS[tone]}`}
+    >
+      {label ? <span className="sr-only">{label}: </span> : null}
+      {formatDueDate(dueAt)}
+    </time>
   );
 }
 

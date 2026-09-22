@@ -1,6 +1,18 @@
 import type { Member } from "@/types";
-import { TICKET_STATUSES, type TicketFilters, type TicketStatus } from "@/types";
+import {
+  DUE_FILTERS,
+  TICKET_STATUSES,
+  type DueFilter,
+  type TicketFilters,
+  type TicketStatus,
+} from "@/types";
 import { statusLabel } from "@/lib/format";
+
+const DUE_FILTER_LABELS: Record<DueFilter, string> = {
+  all: "Alle Fälligkeiten",
+  overdue: "Überfällig",
+  has_due: "Mit Fälligkeit",
+};
 
 type TicketFiltersProps = {
   filters: TicketFilters;
@@ -15,6 +27,19 @@ export function TicketFiltersBar({
 }: TicketFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-transparent select-none" aria-hidden="true">
+          Filter
+        </span>
+        <button
+          type="button"
+          className="chip"
+          aria-pressed={Boolean(filters.mine)}
+          onClick={() => onChange({ ...filters, mine: !filters.mine })}
+        >
+          Meine Tickets
+        </button>
+      </div>
       <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs text-[var(--muted)]">
         Title
         <input
@@ -52,6 +77,12 @@ export function TicketFiltersBar({
         <select
           className="field min-w-48"
           value={filters.assigneeId ?? "all"}
+          disabled={Boolean(filters.mine)}
+          title={
+            filters.mine
+              ? "Deaktiviert, solange „Meine Tickets“ aktiv ist."
+              : undefined
+          }
           onChange={(event) =>
             onChange({ ...filters, assigneeId: event.target.value })
           }
@@ -61,6 +92,25 @@ export function TicketFiltersBar({
           {members.map((member) => (
             <option key={member.id} value={member.id}>
               {member.displayName}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+        Fälligkeit
+        <select
+          className="field min-w-44"
+          value={filters.due ?? "all"}
+          onChange={(event) =>
+            onChange({
+              ...filters,
+              due: event.target.value as DueFilter,
+            })
+          }
+        >
+          {DUE_FILTERS.map((due) => (
+            <option key={due} value={due}>
+              {DUE_FILTER_LABELS[due]}
             </option>
           ))}
         </select>
