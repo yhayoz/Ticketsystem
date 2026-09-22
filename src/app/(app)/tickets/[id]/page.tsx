@@ -23,6 +23,9 @@ import {
   type TicketStatus,
 } from "@/types";
 
+/** Stand-in uid so the layout preview can exercise assign-to-me without Firebase Auth. */
+const PREVIEW_ACTOR_ID = "preview-user";
+
 export default function TicketDetailPage() {
   const params = useParams<{ id: string }>();
   const ticketId = params.id;
@@ -33,6 +36,7 @@ export default function TicketDetailPage() {
     Boolean(matchedPreview) || ticketId === "preview" || !configured;
   const canEdit = canUseWriteChrome(role, configured);
   const canAssign = canEdit && (!configured || canAssignTickets(role));
+  const actorUid = user?.uid ?? (!configured && canAssign ? PREVIEW_ACTOR_ID : null);
 
   const [ticket, setTicket] = useState<Ticket | null>(
     isPreview ? (matchedPreview ?? PREVIEW_TICKET) : null,
@@ -44,6 +48,7 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(!isPreview);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [assignNotice, setAssignNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPreview) {
@@ -92,12 +97,13 @@ export default function TicketDetailPage() {
     setMembers(listAssignableMembers(nextMembers));
   }
 
-  async function patch(updates: Partial<Ticket>) {
+  async function patch(updates: Partial<Ticket>): Promise<boolean> {
     if (!ticket || !configured) {
-      return;
+      return false;
     }
     setSaving(true);
     setError(null);
+    setAssignNotice(null);
     try {
       await updateTicket(ticket.id, {
         title: updates.title,
@@ -107,11 +113,39 @@ export default function TicketDetailPage() {
         assigneeId: updates.assigneeId,
       });
       await refresh();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update ticket.");
+      return false;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function assignToMe() {
+    if (!ticket || !actorUid || !canAssign || saving || ticket.assigneeId === actorUid) {
+      return;
+    }
+
+    const previousAssigneeId = ticket.assigneeId;
+    setError(null);
+    setAssignNotice(null);
+    setTicket({ ...ticket, assigneeId: actorUid });
+
+    if (!configured) {
+      setAssignNotice("Dir zugewiesen.");
+      return;
+    }
+
+    const saved = await patch({ assigneeId: actorUid });
+    if (saved) {
+      setAssignNotice("Dir zugewiesen.");
+      return;
+    }
+
+    setTicket((current) =>
+      current ? { ...current, assigneeId: previousAssigneeId } : current,
+    );
   }
 
   async function onComment(body: string) {
@@ -220,28 +254,59 @@ export default function TicketDetailPage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-              Assignee
-              <select
-                className="field"
-                value={ticket.assigneeId ?? ""}
-                disabled={!canAssign || saving}
-                onChange={(event) => {
-                  const assigneeId = event.target.value || null;
-                  setTicket({ ...ticket, assigneeId });
-                  if (canAssign) {
-                    void patch({ assigneeId });
-                  }
-                }}
-              >
-                <option value="">Unassigned</option>
-                {members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex flex-col gap-1">
+              {canAssign && actorUid ? (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={saving || ticket.assigneeId === actorUid}
+                  onClick={() => {
+                    void assignToMe();
+                  }}
+                >
+                  Mir zuweisen
+                </button>
+              ) : null}
+              {assignNotice ? (
+                <p
+                  className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-950"
+                  role="status"
+                >
+                  {assignNotice}
+                </p>
+              ) : null}
+              <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+                Assignee
+                <select
+                  className="field"
+                  aria-label="Assignee"
+                  value={ticket.assigneeId ?? ""}
+                  disabled={!canAssign || saving}
+                  onChange={(event) => {
+                    const assigneeId = event.target.value || null;
+                    setAssignNotice(null);
+                    setTicket({ ...ticket, assigneeId });
+                    if (canAssign) {
+                      void patch({ assigneeId });
+                    }
+                  }}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.displayName}
+                    </option>
+                  ))}
+                  {actorUid &&
+                  ticket.assigneeId === actorUid &&
+                  !members.some((member) => member.id === actorUid) ? (
+                    <option value={actorUid}>
+                      {user?.displayName || user?.email || "Ich"}
+                    </option>
+                  ) : null}
+                </select>
+              </label>
+            </div>
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">Zuständig: {assigneeName}</p>
