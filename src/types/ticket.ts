@@ -1,3 +1,4 @@
+/** Stored values allowed by Firestore rules. UI must list both `done` and `closed`. */
 export const TICKET_STATUSES = [
   "open",
   "in_progress",

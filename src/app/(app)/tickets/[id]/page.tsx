@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { TicketBadges } from "@/components/tickets/Badges";
 import { CommentThread } from "@/components/tickets/CommentThread";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { addComment, listComments } from "@/lib/comments";
 import { formatDateTime, priorityLabel, statusLabel } from "@/lib/format";
 import { listAssignableMembers, listMembers } from "@/lib/members";
-import { PREVIEW_COMMENTS, PREVIEW_TICKET } from "@/lib/preview-data";
-import { canAssignTickets, canWriteTickets } from "@/lib/roles";
+import { PREVIEW_COMMENTS, PREVIEW_TICKET, previewTicketById } from "@/lib/preview-data";
+import { withPreviewRole } from "@/lib/preview-role";
+import { canAssignTickets, canUseWriteChrome } from "@/lib/roles";
 import { getTicket, updateTicket } from "@/lib/tickets";
 import {
   TICKET_PRIORITIES,
@@ -26,12 +28,14 @@ export default function TicketDetailPage() {
   const ticketId = params.id;
   const router = useRouter();
   const { user, role, configured } = useAuth();
-  const isPreview = ticketId === "preview" || !configured;
-  const canEdit = !isPreview && canWriteTickets(role);
-  const canAssign = !isPreview && canAssignTickets(role);
+  const matchedPreview = previewTicketById(ticketId);
+  const isPreview =
+    Boolean(matchedPreview) || ticketId === "preview" || !configured;
+  const canEdit = canUseWriteChrome(role, configured);
+  const canAssign = canEdit && (!configured || canAssignTickets(role));
 
   const [ticket, setTicket] = useState<Ticket | null>(
-    isPreview ? PREVIEW_TICKET : null,
+    isPreview ? (matchedPreview ?? PREVIEW_TICKET) : null,
   );
   const [comments, setComments] = useState<Comment[]>(
     isPreview ? PREVIEW_COMMENTS : [],
@@ -125,150 +129,168 @@ export default function TicketDetailPage() {
   if (!ticket) {
     return (
       <div className="space-y-3">
-        <Link href="/inbox" className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
+        <Link href={withPreviewRole("/inbox", role, configured)} className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
           ← Inbox
         </Link>
         <h1 className="text-xl font-semibold">Ticket not found</h1>
         <p className="text-sm text-[var(--muted)]">
           No document exists at <code>tickets/{ticketId}</code>.
         </p>
-        <button type="button" className="btn-secondary" onClick={() => router.push("/inbox")}>
+        <button type="button" className="btn-secondary" onClick={() => router.push(withPreviewRole("/inbox", role, configured))}>
           Back to inbox
         </button>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-5">
-      <Link href="/inbox" className="inline-block text-sm text-[var(--muted)] hover:text-[var(--ink)]">
-        ← Inbox
-      </Link>
+  const assigneeName = ticket.assigneeId
+    ? members.find((member) => member.id === ticket.assigneeId)?.displayName ??
+      ticket.assigneeId
+    : "Unassigned";
 
+  return (
+    <div>
       {isPreview ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
           Layout preview — this ticket is not stored in Firestore.
         </p>
       ) : null}
 
-      <header className="space-y-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
-        <input
-          aria-label="Title"
-          className="field w-full text-xl font-semibold"
-          value={ticket.title}
-          disabled={!canEdit || saving}
-          onChange={(event) =>
-            setTicket({ ...ticket, title: event.target.value })
-          }
-          onBlur={() => {
-            if (canEdit) {
-              void patch({ title: ticket.title });
+      <header className="sticky top-0 z-10 -mx-4 space-y-3 border-b border-[var(--line)] bg-[var(--bg)] px-4 py-4">
+        <Link href={withPreviewRole("/inbox", role, configured)} className="inline-block text-sm text-[var(--muted)] hover:text-[var(--ink)]">
+          ← Inbox
+        </Link>
+
+        {canEdit ? (
+          <input
+            aria-label="Title"
+            className="field w-full text-xl font-semibold"
+            value={ticket.title}
+            disabled={saving}
+            onChange={(event) =>
+              setTicket({ ...ticket, title: event.target.value })
             }
-          }}
-        />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Status
-            <select
-              className="field"
-              value={ticket.status}
-              disabled={!canEdit || saving}
-              onChange={(event) => {
-                const status = event.target.value as TicketStatus;
-                setTicket({ ...ticket, status });
-                if (canEdit) {
+            onBlur={() => {
+              void patch({ title: ticket.title });
+            }}
+          />
+        ) : (
+          <h1 className="text-xl font-semibold">{ticket.title || "Untitled"}</h1>
+        )}
+
+        <TicketBadges status={ticket.status} priority={ticket.priority} />
+
+        {canEdit ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Status
+              <select
+                className="field"
+                value={ticket.status}
+                disabled={saving}
+                onChange={(event) => {
+                  const status = event.target.value as TicketStatus;
+                  setTicket({ ...ticket, status });
                   void patch({ status });
-                }
-              }}
-            >
-              {TICKET_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {statusLabel(value)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Priority
-            <select
-              className="field"
-              value={ticket.priority}
-              disabled={!canEdit || saving}
-              onChange={(event) => {
-                const priority = event.target.value as TicketPriority;
-                setTicket({ ...ticket, priority });
-                if (canEdit) {
+                }}
+              >
+                {TICKET_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {statusLabel(value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Priority
+              <select
+                className="field"
+                value={ticket.priority}
+                disabled={saving}
+                onChange={(event) => {
+                  const priority = event.target.value as TicketPriority;
+                  setTicket({ ...ticket, priority });
                   void patch({ priority });
-                }
-              }}
-            >
-              {TICKET_PRIORITIES.map((value) => (
-                <option key={value} value={value}>
-                  {priorityLabel(value)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Assignee
-            <select
-              className="field"
-              value={ticket.assigneeId ?? ""}
-              disabled={!canAssign || saving}
-              onChange={(event) => {
-                const assigneeId = event.target.value || null;
-                setTicket({ ...ticket, assigneeId });
-                if (canAssign) {
-                  void patch({ assigneeId });
-                }
-              }}
-            >
-              <option value="">Unassigned</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+                }}
+              >
+                {TICKET_PRIORITIES.map((value) => (
+                  <option key={value} value={value}>
+                    {priorityLabel(value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Assignee
+              <select
+                className="field"
+                value={ticket.assigneeId ?? ""}
+                disabled={!canAssign || saving}
+                onChange={(event) => {
+                  const assigneeId = event.target.value || null;
+                  setTicket({ ...ticket, assigneeId });
+                  if (canAssign) {
+                    void patch({ assigneeId });
+                  }
+                }}
+              >
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">Zuständig: {assigneeName}</p>
+        )}
+
         <p className="text-xs text-[var(--muted)]">
           Created by <span className="font-mono">{ticket.createdBy}</span> ·{" "}
           {formatDateTime(ticket.createdAt)}
         </p>
       </header>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-5 text-sm text-red-700">{error}</p> : null}
 
-      <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-        Description
-        <textarea
-          className="field min-h-36 bg-[var(--surface)]"
-          value={ticket.description}
-          disabled={!canEdit || saving}
-          onChange={(event) =>
-            setTicket({ ...ticket, description: event.target.value })
-          }
-          onBlur={() => {
-            if (canEdit) {
-              void patch({ description: ticket.description });
-            }
-          }}
+      <div className="mt-6 space-y-6">
+        <section className="space-y-2 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="text-sm font-semibold">Beschreibung</h2>
+          {canEdit ? (
+            <textarea
+              aria-label="Description"
+              className="field min-h-36 w-full"
+              value={ticket.description}
+              disabled={saving}
+              onChange={(event) =>
+                setTicket({ ...ticket, description: event.target.value })
+              }
+              onBlur={() => {
+                void patch({ description: ticket.description });
+              }}
+            />
+          ) : (
+            <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">
+              {ticket.description || "Keine Beschreibung."}
+            </p>
+          )}
+        </section>
+
+        {!canEdit ? (
+          <p className="text-xs text-[var(--muted)]">
+            Deine Rolle ist schreibgeschützt.
+          </p>
+        ) : null}
+
+        <CommentThread
+          comments={comments}
+          canWrite={canEdit}
+          disabled={saving || isPreview}
+          onSubmit={onComment}
         />
-      </label>
-
-      {!canEdit && !isPreview ? (
-        <p className="text-xs text-[var(--muted)]">
-          Your role is read-only on this ticket.
-        </p>
-      ) : null}
-
-      <CommentThread
-        comments={comments}
-        canWrite={canEdit}
-        disabled={saving || isPreview}
-        onSubmit={onComment}
-      />
+      </div>
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function TicketFiltersBar({
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Status
         <select
-          className="field min-w-40"
+          className="field min-w-44"
           value={filters.status ?? "all"}
           onChange={(event) =>
             onChange({
@@ -39,7 +39,7 @@ export function TicketFiltersBar({
             })
           }
         >
-          <option value="all">All statuses</option>
+          <option value="all">Alle Status</option>
           {TICKET_STATUSES.map((status) => (
             <option key={status} value={status}>
               {statusLabel(status)}

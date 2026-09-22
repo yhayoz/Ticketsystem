@@ -1,14 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/inbox";
   const { signIn, signUp, configured, user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,9 +16,9 @@ function LoginForm() {
 
   useEffect(() => {
     if (!loading && configured && user) {
-      router.replace(nextPath);
+      router.replace("/inbox");
     }
-  }, [configured, loading, nextPath, router, user]);
+  }, [configured, loading, router, user]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -32,9 +30,9 @@ function LoginForm() {
       } else {
         await signUp(email, password);
       }
-      router.replace(nextPath);
+      router.replace("/inbox");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setError(err instanceof Error ? err.message : "Anmeldung fehlgeschlagen.");
     } finally {
       setSubmitting(false);
     }
@@ -42,96 +40,74 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-5 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-sm">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-            Ticketsystem
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">
-            {mode === "in" ? "Sign in" : "Create account"}
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center">
+          <p className="text-sm font-semibold tracking-tight">Ticketsystem</p>
+          <h1 className="mt-2 text-xl font-semibold">
+            {mode === "in" ? "Anmelden" : "Konto erstellen"}
           </h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Firebase Auth email/password. Roles come from custom claims
-            (admin, agent, viewer).
-          </p>
         </div>
 
         {!configured ? (
-          <div className="space-y-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-            <p>
-              Firebase client env vars are not set. You can still open the
-              stubbed inbox and detail layout.
+          <div className="space-y-3">
+            <p className="text-center text-sm text-[var(--muted)]">
+              Firebase ist nicht konfiguriert. Die Inbox-Vorschau ist trotzdem
+              verfügbar.
             </p>
-            <Link href="/inbox" className="btn-primary inline-flex">
-              Continue to inbox preview
+            <Link href="/inbox" className="btn-primary w-full">
+              Zur Inbox
             </Link>
           </div>
-        ) : null}
+        ) : (
+          <form onSubmit={onSubmit} className="space-y-3">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              E-Mail
+              <input
+                className="field"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={submitting}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Passwort
+              <input
+                className="field"
+                type="password"
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                required
+                minLength={6}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={submitting}
+              />
+            </label>
+            {error ? <p className="text-sm text-red-700">{error}</p> : null}
+            <button type="submit" className="btn-primary w-full" disabled={submitting}>
+              {submitting
+                ? "Bitte warten…"
+                : mode === "in"
+                  ? "Anmelden"
+                  : "Konto erstellen"}
+            </button>
+          </form>
+        )}
 
-        <form onSubmit={onSubmit} className="space-y-3">
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Email
-            <input
-              className="field"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              disabled={!configured || submitting}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Password
-            <input
-              className="field"
-              type="password"
-              autoComplete={mode === "in" ? "current-password" : "new-password"}
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={!configured || submitting}
-            />
-          </label>
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {configured ? (
           <button
-            type="submit"
-            className="btn-primary w-full"
-            disabled={!configured || submitting}
+            type="button"
+            className="mx-auto block text-sm text-[var(--muted)] hover:text-[var(--accent)]"
+            onClick={() => setMode(mode === "in" ? "up" : "in")}
           >
-            {submitting
-              ? "Please wait…"
-              : mode === "in"
-                ? "Sign in"
-                : "Create account"}
+            {mode === "in"
+              ? "Noch kein Konto? Konto erstellen"
+              : "Bereits registriert? Anmelden"}
           </button>
-        </form>
-
-        <button
-          type="button"
-          className="text-sm text-[var(--accent)] hover:underline"
-          onClick={() => setMode(mode === "in" ? "up" : "in")}
-        >
-          {mode === "in"
-            ? "Need an account? Create one"
-            : "Already registered? Sign in"}
-        </button>
+        ) : null}
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center text-sm text-[var(--muted)]">
-          Loading…
-        </div>
-      }
-    >
-      <LoginForm />
-    </Suspense>
   );
 }

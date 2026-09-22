@@ -35,16 +35,17 @@ export function formatRelativeTime(value: Date): string {
   return rtf.format(Math.round(diffMs / (30 * 86_400_000)), "month");
 }
 
+/** UI labels for every stored status — keep both `done` and `closed`. */
 export function statusLabel(status: string): string {
   switch (status) {
     case "open":
-      return "Open";
+      return "Offen";
     case "in_progress":
-      return "In progress";
+      return "In Arbeit";
     case "done":
-      return "Done";
+      return "Erledigt";
     case "closed":
-      return "Closed";
+      return "Geschlossen";
     default:
       return status;
   }

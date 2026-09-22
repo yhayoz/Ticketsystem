@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listAssignableMembers, listMembers } from "@/lib/members";
-import { canWriteTickets } from "@/lib/roles";
+import { withPreviewRole } from "@/lib/preview-role";
+import { canUseWriteChrome } from "@/lib/roles";
 import { createTicket } from "@/lib/tickets";
 import {
   TICKET_PRIORITIES,
@@ -19,7 +20,7 @@ import { priorityLabel, statusLabel } from "@/lib/format";
 export default function NewTicketPage() {
   const router = useRouter();
   const { user, role, configured } = useAuth();
-  const canWrite = !configured || canWriteTickets(role);
+  const canWrite = canUseWriteChrome(role, configured);
   const [members, setMembers] = useState<Member[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -70,10 +71,24 @@ export default function NewTicketPage() {
     }
   }
 
+  if (!canWrite) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-3">
+        <Link href={withPreviewRole("/inbox", role, configured)} className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
+          ← Inbox
+        </Link>
+        <h1 className="text-xl font-semibold">Neues Ticket</h1>
+        <p className="text-sm text-[var(--muted)]">
+          Mit der Rolle Viewer können keine Tickets erstellt werden.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <Link href="/inbox" className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
+        <Link href={withPreviewRole("/inbox", role, configured)} className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">
           ← Inbox
         </Link>
         <h1 className="mt-2 text-xl font-semibold">Neues Ticket</h1>

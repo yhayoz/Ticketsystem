@@ -16,6 +16,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
+import { useSearchParams } from "next/navigation";
 import { getClientAuth, isFirebaseConfigured } from "@/lib/firebase/client";
 import { parseUserRole } from "@/lib/roles";
 import { clearSessionCookie, setSessionCookie } from "@/lib/session";
@@ -35,9 +36,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = isFirebaseConfigured();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [claimedRole, setClaimedRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(configured);
+  const previewRole = parseUserRole(searchParams.get("role")) ?? "agent";
+  const role = configured ? claimedRole : previewRole;
 
   useEffect(() => {
     if (!configured) {
@@ -49,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!nextUser) {
         clearSessionCookie();
         setUser(null);
-        setRole(null);
+        setClaimedRole(null);
         setLoading(false);
         return;
       }
@@ -57,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionCookie();
       const token = await nextUser.getIdTokenResult();
       setUser(nextUser);
-      setRole(parseUserRole(token.claims.role));
+      setClaimedRole(parseUserRole(token.claims.role));
       setLoading(false);
     });
 
