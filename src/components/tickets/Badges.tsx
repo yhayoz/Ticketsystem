@@ -13,8 +13,8 @@ const STATUS_CLASS: Record<TicketStatus, string> = {
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
   low: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
-  medium: "border-amber-200 bg-amber-50 text-amber-950",
-  high: "border-orange-200 bg-orange-50 text-orange-950",
+  medium: "border-amber-300 bg-amber-100 text-amber-950",
+  high: "border-orange-300 bg-orange-100 text-orange-950",
   urgent: "border-red-700 bg-red-600 text-white",
 };
 
