@@ -33,13 +33,13 @@ export function TicketList({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[44rem] text-left text-sm">
         <thead className="border-b border-[var(--line)] bg-[var(--bg)] text-xs uppercase tracking-wide text-[var(--muted)]">
           <tr>
             <th className="px-4 py-2 font-medium">Title</th>
-            <th className="px-4 py-2 font-medium">Assignee</th>
-            <th className="px-4 py-2 font-medium">Fällig</th>
-            <th className="px-4 py-2 font-medium">Updated</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium">Assignee</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium">Fällig</th>
+            <th className="whitespace-nowrap px-4 py-2 font-medium">Updated</th>
           </tr>
         </thead>
         <tbody>
@@ -56,15 +56,15 @@ export function TicketList({
                   <TicketBadges status={ticket.status} priority={ticket.priority} />
                 </div>
               </td>
-              <td className="px-4 py-3 text-[var(--muted)]">
+              <td className="whitespace-nowrap px-4 py-3 text-[var(--muted)]">
                 {ticket.assigneeId
                   ? names.get(ticket.assigneeId) ?? ticket.assigneeId
                   : "Unassigned"}
               </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+              <td className="whitespace-nowrap px-4 py-3">
                 <DueBadge dueAt={ticket.dueAt} />
               </td>
-              <td className="px-4 py-3 text-[var(--muted)]">
+              <td className="whitespace-nowrap px-4 py-3 text-[var(--muted)]">
                 <time dateTime={ticket.updatedAt.toISOString()} title={formatDateTime(ticket.updatedAt)}>
                   {formatRelativeTime(ticket.updatedAt)}
                 </time>
