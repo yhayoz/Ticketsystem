@@ -140,6 +140,7 @@ Client secrets must exist before the first rollout, or the browser bundle is bui
 | `status` | `'open' \| 'in_progress' \| 'done' \| 'closed'` | |
 | `priority` | `'low' \| 'medium' \| 'high' \| 'urgent'` | |
 | `assigneeId` | string \| null | Firebase Auth uid, or `null` |
+| `dueAt` | timestamp \| null | Optional due date. Omitted on older tickets; writers may set a timestamp or clear it with `null` |
 | `createdBy` | string | Author uid (immutable after create) |
 | `createdAt` | timestamp | Immutable after create |
 | `updatedAt` | timestamp | Bumped on ticket edits and new comments |
@@ -198,6 +199,12 @@ Collection: **`tickets`**
 
 Single-field `updatedAt` (unfiltered inbox) and `comments.createdAt` are created automatically.
 
+### Due date and Meine Tickets (no extra index)
+
+Inbox filters **Überfällig** / **Mit Fälligkeit** and the **Meine Tickets** chip run in the browser on the tickets already loaded for the current status (and assignee) query. They do not query `dueAt`, so `firestore.indexes.json` has no `dueAt` composite index.
+
+**Meine Tickets** compares `assigneeId` to the signed-in Firebase Auth uid. That uid is never taken from the URL or query string. While the chip is on, the assignee dropdown is ignored so the list is not narrowed by a second assignee first.
+
 ## Security rules
 
 `firestore.rules` is a readable starting point: staff can read; agents and admins write tickets/comments; only admins delete tickets or edit comments. Deploy with:
@@ -211,9 +218,9 @@ firebase deploy --only firestore:rules,firestore:indexes
 | Path | Purpose |
 | --- | --- |
 | `/login` | Email/password sign-in (and optional account create) |
-| `/inbox` | Ticket list sorted by `updatedAt`, filters for status + assignee + title search, primary action **Neues Ticket** |
-| `/tickets/new` | Create a ticket |
-| `/tickets/[id]` | Header (editable title + status/priority/assignee), description, comments subcollection thread |
+| `/inbox` | Ticket list sorted by `updatedAt`, filters for status + assignee + title search, **Fälligkeit** (Überfällig / Mit Fälligkeit), and **Meine Tickets**. Primary action **Neues Ticket** |
+| `/tickets/new` | Create a ticket (optional due date) |
+| `/tickets/[id]` | Header (editable title + status/priority/assignee + due date for writers; viewers see the due date read-only), description, comments subcollection thread |
 | `/tickets/preview` | Static layout sample when Firebase is not configured |
 
 Title search is applied client-side on the current result set so it does not need an extra Firestore index.

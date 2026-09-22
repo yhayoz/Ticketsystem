@@ -9,16 +9,19 @@ import { listMembers, listAssignableMembers } from "@/lib/members";
 import { PREVIEW_TICKETS } from "@/lib/preview-data";
 import { withPreviewRole } from "@/lib/preview-role";
 import { canUseWriteChrome } from "@/lib/roles";
+import { matchesDueFilter, matchesMine } from "@/lib/due";
 import { listTickets, matchesTitleQuery } from "@/lib/tickets";
 import type { Member, Ticket, TicketFilters } from "@/types";
 
 export default function InboxPage() {
-  const { configured, role } = useAuth();
+  const { configured, role, user } = useAuth();
   const canCreate = canUseWriteChrome(role, configured);
   const [filters, setFilters] = useState<TicketFilters>({
     status: "all",
     assigneeId: "all",
     title: "",
+    due: "all",
+    mine: false,
   });
   const [tickets, setTickets] = useState<Ticket[]>(
     configured ? [] : PREVIEW_TICKETS,
@@ -39,7 +42,9 @@ export default function InboxPage() {
         const [nextTickets, nextMembers] = await Promise.all([
           listTickets({
             status: filters.status,
-            assigneeId: filters.assigneeId,
+            // Meine Tickets filters by the session uid on the client.
+            // Do not send a uid from the URL, and do not combine it with the assignee dropdown.
+            assigneeId: filters.mine ? "all" : filters.assigneeId,
           }),
           listMembers(),
         ]);
@@ -63,16 +68,26 @@ export default function InboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [configured, filters.assigneeId, filters.status]);
+  }, [configured, filters.assigneeId, filters.mine, filters.status]);
+
+  const sessionUid = user?.uid ?? null;
 
   const visibleTickets = useMemo(
-    () => tickets.filter((ticket) => matchesTitleQuery(ticket, filters.title)),
-    [filters.title, tickets],
+    () =>
+      tickets.filter(
+        (ticket) =>
+          matchesTitleQuery(ticket, filters.title) &&
+          matchesDueFilter(ticket, filters.due) &&
+          matchesMine(ticket, filters.mine, sessionUid),
+      ),
+    [filters.due, filters.mine, filters.title, sessionUid, tickets],
   );
 
   const hasActiveFilters =
     (filters.status ?? "all") !== "all" ||
-    (filters.assigneeId ?? "all") !== "all" ||
+    ((filters.assigneeId ?? "all") !== "all" && !filters.mine) ||
+    (filters.due ?? "all") !== "all" ||
+    Boolean(filters.mine) ||
     Boolean(filters.title?.trim());
 
   const emptyHint =
@@ -86,7 +101,7 @@ export default function InboxPage() {
         <div>
           <h1 className="text-xl font-semibold">Inbox</h1>
           <p className="text-sm text-[var(--muted)]">
-            Sorted by last update. Filter by status, assignee, and title.
+            Nach letzter Änderung sortiert. Filter nach Status, Zuständigkeit, Fälligkeit und Titel.
           </p>
         </div>
         {canCreate ? (
@@ -101,6 +116,12 @@ export default function InboxPage() {
         members={members}
         onChange={setFilters}
       />
+
+      {filters.mine && !sessionUid ? (
+        <p className="text-sm text-[var(--muted)]">
+          Meine Tickets gilt für das angemeldete Konto.
+        </p>
+      ) : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 

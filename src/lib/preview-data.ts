@@ -10,6 +10,22 @@ export const PREVIEW_MEMBERS: Member[] = [
   },
 ];
 
+/** UTC end-of-day offset so preview due colors stay stable across server and client. */
+function previewDueAt(offsetDays: number): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + offsetDays,
+      23,
+      59,
+      59,
+      999,
+    ),
+  );
+}
+
 /** Static sample used by `/tickets/preview` when Firebase is not configured. */
 export const PREVIEW_TICKET: Ticket = {
   id: "preview",
@@ -19,6 +35,7 @@ export const PREVIEW_TICKET: Ticket = {
   status: "open",
   priority: "high",
   assigneeId: null,
+  dueAt: previewDueAt(-1),
   createdBy: "preview-user",
   createdAt: new Date("2026-09-20T09:00:00.000Z"),
   updatedAt: new Date("2026-09-21T08:30:00.000Z"),
@@ -31,6 +48,7 @@ export const PREVIEW_TICKET_DONE: Ticket = {
   status: "done",
   priority: "medium",
   assigneeId: null,
+  dueAt: previewDueAt(1),
   createdBy: "preview-user",
   createdAt: new Date("2026-09-19T11:00:00.000Z"),
   updatedAt: new Date("2026-09-21T07:10:00.000Z"),
@@ -43,6 +61,7 @@ export const PREVIEW_TICKET_CLOSED: Ticket = {
   status: "closed",
   priority: "low",
   assigneeId: null,
+  dueAt: previewDueAt(14),
   createdBy: "preview-user",
   createdAt: new Date("2026-09-18T14:00:00.000Z"),
   updatedAt: new Date("2026-09-20T16:45:00.000Z"),

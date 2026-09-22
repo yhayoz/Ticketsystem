@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { TicketBadges } from "@/components/tickets/Badges";
+import { DueBadge, TicketBadges } from "@/components/tickets/Badges";
 import { CommentThread } from "@/components/tickets/CommentThread";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { addComment, listComments } from "@/lib/comments";
+import { dateInputToDueAt, dueAtToDateInput, dueTone, dueToneLabel } from "@/lib/due";
 import { formatDateTime, memberLabel, priorityLabel, statusLabel } from "@/lib/format";
 import { listAssignableMembers, listMembers } from "@/lib/members";
 import {
@@ -115,6 +116,7 @@ export default function TicketDetailPage() {
         status: updates.status,
         priority: updates.priority,
         assigneeId: updates.assigneeId,
+        dueAt: updates.dueAt,
       });
       await refresh();
       return true;
@@ -244,7 +246,7 @@ export default function TicketDetailPage() {
         <TicketBadges status={ticket.status} priority={ticket.priority} />
 
         {canEdit ? (
-          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Status
               <select
@@ -336,9 +338,22 @@ export default function TicketDetailPage() {
                 </p>
               ) : null}
             </div>
+            <DueDateField
+              dueAt={ticket.dueAt}
+              disabled={saving}
+              onChange={(dueAt) => {
+                setTicket({ ...ticket, dueAt });
+                void patch({ dueAt });
+              }}
+            />
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)]">Zuständig: {assigneeName}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--muted)]">
+            <p>Zuständig: {assigneeName}</p>
+            <p className="flex items-center gap-2">
+              Fällig: <DueBadge dueAt={ticket.dueAt} />
+            </p>
+          </div>
         )}
 
         <p className="text-xs text-[var(--muted)]">
@@ -384,6 +399,54 @@ export default function TicketDetailPage() {
           onSubmit={onComment}
         />
       </div>
+    </div>
+  );
+}
+
+function DueDateField({
+  dueAt,
+  disabled,
+  onChange,
+}: {
+  dueAt: Date | null;
+  disabled: boolean;
+  onChange: (dueAt: Date | null) => void;
+}) {
+  const tone = dueTone(dueAt);
+  const hint = dueToneLabel(tone);
+  const toneClass =
+    tone === "overdue"
+      ? "field field-overdue"
+      : tone === "soon"
+        ? "field field-soon"
+        : "field";
+
+  return (
+    <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+      <label htmlFor="ticket-due-at">Fällig</label>
+      <span className="flex items-center gap-2">
+        <input
+          id="ticket-due-at"
+          type="date"
+          className={`${toneClass} min-w-0 flex-1`}
+          value={dueAtToDateInput(dueAt)}
+          disabled={disabled}
+          onChange={(event) => onChange(dateInputToDueAt(event.target.value))}
+        />
+        <button
+          type="button"
+          className="shrink-0 font-medium text-[var(--muted)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={disabled || !dueAt}
+          onClick={() => onChange(null)}
+        >
+          Löschen
+        </button>
+      </span>
+      {hint && tone !== "neutral" ? (
+        <span className={tone === "overdue" ? "text-red-700" : "text-amber-800"}>
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ export type { Member } from "./member";
 export type { UserRole } from "./role";
 export { USER_ROLES } from "./role";
 export type {
+  DueFilter,
   Ticket,
   TicketDraft,
   TicketFilters,
@@ -10,4 +11,4 @@ export type {
   TicketStatus,
   TicketUpdates,
 } from "./ticket";
-export { TICKET_PRIORITIES, TICKET_STATUSES } from "./ticket";
+export { DUE_FILTERS, TICKET_PRIORITIES, TICKET_STATUSES } from "./ticket";

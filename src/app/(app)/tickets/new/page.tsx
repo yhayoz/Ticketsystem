@@ -15,6 +15,7 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from "@/types";
+import { dateInputToDueAt } from "@/lib/due";
 import { priorityLabel, statusLabel } from "@/lib/format";
 
 export default function NewTicketPage() {
@@ -29,6 +30,7 @@ export default function NewTicketPage() {
   const [priority, setPriority] = useState<TicketPriority>("medium");
   const [assigneeId, setAssigneeId] = useState("");
   const [assignToMe, setAssignToMe] = useState(false);
+  const [dueOn, setDueOn] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +66,7 @@ export default function NewTicketPage() {
           status,
           priority,
           assigneeId: assignToSelf ? null : assigneeId || null,
+          dueAt: dateInputToDueAt(dueOn),
         },
         user.uid,
         { assignToSelf },
@@ -122,7 +125,7 @@ export default function NewTicketPage() {
             disabled={!canWrite || saving}
           />
         </label>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
             Status
             <select
@@ -187,6 +190,27 @@ export default function NewTicketPage() {
             {assignToMe ? (
               <p className="text-xs text-[var(--muted)]">Wird dir zugewiesen.</p>
             ) : null}
+          </div>
+          <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            <label htmlFor="new-ticket-due-at">Fällig</label>
+            <span className="flex items-center gap-2">
+              <input
+                id="new-ticket-due-at"
+                type="date"
+                className="field min-w-0 flex-1"
+                value={dueOn}
+                onChange={(event) => setDueOn(event.target.value)}
+                disabled={!canWrite || saving}
+              />
+              <button
+                type="button"
+                className="shrink-0 font-medium text-[var(--muted)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canWrite || saving || !dueOn}
+                onClick={() => setDueOn("")}
+              >
+                Löschen
+              </button>
+            </span>
           </div>
         </div>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
