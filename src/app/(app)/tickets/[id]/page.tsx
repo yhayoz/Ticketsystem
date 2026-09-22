@@ -7,9 +7,14 @@ import { TicketBadges } from "@/components/tickets/Badges";
 import { CommentThread } from "@/components/tickets/CommentThread";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { addComment, listComments } from "@/lib/comments";
-import { formatDateTime, priorityLabel, statusLabel } from "@/lib/format";
+import { formatDateTime, memberLabel, priorityLabel, statusLabel } from "@/lib/format";
 import { listAssignableMembers, listMembers } from "@/lib/members";
-import { PREVIEW_COMMENTS, PREVIEW_TICKET, previewTicketById } from "@/lib/preview-data";
+import {
+  PREVIEW_COMMENTS,
+  PREVIEW_MEMBERS,
+  PREVIEW_TICKET,
+  previewTicketById,
+} from "@/lib/preview-data";
 import { withPreviewRole } from "@/lib/preview-role";
 import { canAssignTickets, canUseWriteChrome } from "@/lib/roles";
 import { assignTicketToSelf, getTicket, updateTicket } from "@/lib/tickets";
@@ -41,7 +46,9 @@ export default function TicketDetailPage() {
   const [comments, setComments] = useState<Comment[]>(
     isPreview ? PREVIEW_COMMENTS : [],
   );
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(
+    isPreview ? PREVIEW_MEMBERS : [],
+  );
   const [loading, setLoading] = useState(!isPreview);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,7 +73,7 @@ export default function TicketDetailPage() {
         }
         setTicket(nextTicket);
         setComments(nextComments);
-        setMembers(listAssignableMembers(nextMembers));
+        setMembers(nextMembers);
         setError(null);
         setLoading(false);
       } catch (err) {
@@ -91,7 +98,7 @@ export default function TicketDetailPage() {
     ]);
     setTicket(nextTicket);
     setComments(nextComments);
-    setMembers(listAssignableMembers(nextMembers));
+    setMembers(nextMembers);
   }
 
   async function patch(updates: Partial<Ticket>): Promise<boolean> {
@@ -120,10 +127,21 @@ export default function TicketDetailPage() {
   }
 
   async function assignToMe() {
-    if (!ticket || !selfUid || !canAssign || !configured || saving) {
+    if (!ticket || !canAssign || saving) {
       return;
     }
-    if (ticket.assigneeId === selfUid) {
+
+    if (!configured) {
+      if (ticket.assigneeId === "preview-user") {
+        return;
+      }
+      setAssignNotice(null);
+      setTicket({ ...ticket, assigneeId: "preview-user" });
+      setAssignNotice("Dir zugewiesen.");
+      return;
+    }
+
+    if (!selfUid || ticket.assigneeId === selfUid) {
       return;
     }
 
@@ -176,10 +194,22 @@ export default function TicketDetailPage() {
     );
   }
 
+  const assignableMembers = listAssignableMembers(members);
+  const profileFor = (uid: string) =>
+    user && user.uid === uid
+      ? { displayName: user.displayName, email: user.email }
+      : null;
   const assigneeName = ticket.assigneeId
-    ? members.find((member) => member.id === ticket.assigneeId)?.displayName ??
-      ticket.assigneeId
+    ? memberLabel(members, ticket.assigneeId, profileFor(ticket.assigneeId))
     : "Unassigned";
+  const createdByLabel = memberLabel(
+    members,
+    ticket.createdBy,
+    profileFor(ticket.createdBy),
+  );
+  const assignedToSelf = configured
+    ? Boolean(selfUid) && ticket.assigneeId === selfUid
+    : ticket.assigneeId === "preview-user";
 
   return (
     <div>
@@ -214,7 +244,7 @@ export default function TicketDetailPage() {
         <TicketBadges status={ticket.status} priority={ticket.priority} />
 
         {canEdit ? (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Status
               <select
@@ -253,27 +283,7 @@ export default function TicketDetailPage() {
                 ))}
               </select>
             </label>
-            <div className="flex flex-col gap-1">
-              {canAssign && selfUid ? (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={saving || ticket.assigneeId === selfUid}
-                  onClick={() => {
-                    void assignToMe();
-                  }}
-                >
-                  Mir zuweisen
-                </button>
-              ) : null}
-              {assignNotice ? (
-                <p
-                  className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-950"
-                  role="status"
-                >
-                  {assignNotice}
-                </p>
-              ) : null}
+            <div className="flex min-w-0 flex-col gap-1.5">
               <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                 Assignee
                 <select
@@ -291,20 +301,40 @@ export default function TicketDetailPage() {
                   }}
                 >
                   <option value="">Unassigned</option>
-                  {members.map((member) => (
+                  {assignableMembers.map((member) => (
                     <option key={member.id} value={member.id}>
                       {member.displayName}
                     </option>
                   ))}
                   {selfUid &&
                   ticket.assigneeId === selfUid &&
-                  !members.some((member) => member.id === selfUid) ? (
+                  !assignableMembers.some((member) => member.id === selfUid) ? (
                     <option value={selfUid}>
                       {user?.displayName || user?.email || "Ich"}
                     </option>
                   ) : null}
                 </select>
               </label>
+              {canAssign ? (
+                <button
+                  type="button"
+                  className="btn-secondary btn-compact"
+                  disabled={saving || (configured && !selfUid) || assignedToSelf}
+                  onClick={() => {
+                    void assignToMe();
+                  }}
+                >
+                  Mir zuweisen
+                </button>
+              ) : null}
+              {assignNotice ? (
+                <p
+                  className="w-fit rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-950"
+                  role="status"
+                >
+                  {assignNotice}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : (
@@ -312,8 +342,7 @@ export default function TicketDetailPage() {
         )}
 
         <p className="text-xs text-[var(--muted)]">
-          Created by <span className="font-mono">{ticket.createdBy}</span> ·{" "}
-          {formatDateTime(ticket.createdAt)}
+          Erstellt von {createdByLabel} · {formatDateTime(ticket.createdAt)}
         </p>
       </header>
 

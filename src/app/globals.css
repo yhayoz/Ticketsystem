@@ -98,3 +98,13 @@ code,
 .btn-secondary:disabled:hover {
   background: var(--surface);
 }
+
+.btn-compact {
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  white-space: nowrap;
+}
