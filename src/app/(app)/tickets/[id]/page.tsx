@@ -12,7 +12,7 @@ import { listAssignableMembers, listMembers } from "@/lib/members";
 import { PREVIEW_COMMENTS, PREVIEW_TICKET, previewTicketById } from "@/lib/preview-data";
 import { withPreviewRole } from "@/lib/preview-role";
 import { canAssignTickets, canUseWriteChrome } from "@/lib/roles";
-import { getTicket, updateTicket } from "@/lib/tickets";
+import { assignTicketToSelf, getTicket, updateTicket } from "@/lib/tickets";
 import {
   TICKET_PRIORITIES,
   TICKET_STATUSES,
@@ -22,9 +22,6 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from "@/types";
-
-/** Stand-in uid so the layout preview can exercise assign-to-me without Firebase Auth. */
-const PREVIEW_ACTOR_ID = "preview-user";
 
 export default function TicketDetailPage() {
   const params = useParams<{ id: string }>();
@@ -36,7 +33,7 @@ export default function TicketDetailPage() {
     Boolean(matchedPreview) || ticketId === "preview" || !configured;
   const canEdit = canUseWriteChrome(role, configured);
   const canAssign = canEdit && (!configured || canAssignTickets(role));
-  const actorUid = user?.uid ?? (!configured && canAssign ? PREVIEW_ACTOR_ID : null);
+  const selfUid = user?.uid ?? null;
 
   const [ticket, setTicket] = useState<Ticket | null>(
     isPreview ? (matchedPreview ?? PREVIEW_TICKET) : null,
@@ -123,29 +120,31 @@ export default function TicketDetailPage() {
   }
 
   async function assignToMe() {
-    if (!ticket || !actorUid || !canAssign || saving || ticket.assigneeId === actorUid) {
+    if (!ticket || !selfUid || !canAssign || !configured || saving) {
+      return;
+    }
+    if (ticket.assigneeId === selfUid) {
       return;
     }
 
     const previousAssigneeId = ticket.assigneeId;
+    setSaving(true);
     setError(null);
     setAssignNotice(null);
-    setTicket({ ...ticket, assigneeId: actorUid });
+    setTicket({ ...ticket, assigneeId: selfUid });
 
-    if (!configured) {
+    try {
+      await assignTicketToSelf(ticket.id);
+      await refresh();
       setAssignNotice("Dir zugewiesen.");
-      return;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update ticket.");
+      setTicket((current) =>
+        current ? { ...current, assigneeId: previousAssigneeId } : current,
+      );
+    } finally {
+      setSaving(false);
     }
-
-    const saved = await patch({ assigneeId: actorUid });
-    if (saved) {
-      setAssignNotice("Dir zugewiesen.");
-      return;
-    }
-
-    setTicket((current) =>
-      current ? { ...current, assigneeId: previousAssigneeId } : current,
-    );
   }
 
   async function onComment(body: string) {
@@ -255,11 +254,11 @@ export default function TicketDetailPage() {
               </select>
             </label>
             <div className="flex flex-col gap-1">
-              {canAssign && actorUid ? (
+              {canAssign && selfUid ? (
                 <button
                   type="button"
                   className="btn-secondary"
-                  disabled={saving || ticket.assigneeId === actorUid}
+                  disabled={saving || ticket.assigneeId === selfUid}
                   onClick={() => {
                     void assignToMe();
                   }}
@@ -297,10 +296,10 @@ export default function TicketDetailPage() {
                       {member.displayName}
                     </option>
                   ))}
-                  {actorUid &&
-                  ticket.assigneeId === actorUid &&
-                  !members.some((member) => member.id === actorUid) ? (
-                    <option value={actorUid}>
+                  {selfUid &&
+                  ticket.assigneeId === selfUid &&
+                  !members.some((member) => member.id === selfUid) ? (
+                    <option value={selfUid}>
                       {user?.displayName || user?.email || "Ich"}
                     </option>
                   ) : null}
