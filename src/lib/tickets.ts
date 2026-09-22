@@ -1,4 +1,5 @@
 import {
+  Timestamp,
   addDoc,
   collection,
   deleteDoc,
@@ -37,6 +38,13 @@ function ticketFiltersToConstraints(filters: TicketFilters = {}): QueryConstrain
   return constraints;
 }
 
+function dueAtToFirestore(dueAt: Date | null): Timestamp | null {
+  if (!dueAt || Number.isNaN(dueAt.getTime())) {
+    return null;
+  }
+  return Timestamp.fromDate(dueAt);
+}
+
 export function matchesTitleQuery(ticket: Ticket, titleQuery?: string): boolean {
   const needle = titleQuery?.trim().toLowerCase();
   if (!needle) {
@@ -73,6 +81,7 @@ export async function createTicket(
     status: draft.status,
     priority: draft.priority,
     assigneeId: draft.assigneeId,
+    dueAt: dueAtToFirestore(draft.dueAt),
     createdBy,
     createdAt: now,
     updatedAt: now,
@@ -101,6 +110,9 @@ export async function updateTicket(
   }
   if (updates.assigneeId !== undefined) {
     payload.assigneeId = updates.assigneeId;
+  }
+  if (updates.dueAt !== undefined) {
+    payload.dueAt = dueAtToFirestore(updates.dueAt);
   }
 
   await updateDoc(doc(db, TICKETS_COLLECTION, ticketId), payload);

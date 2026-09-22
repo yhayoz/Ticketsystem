@@ -37,6 +37,13 @@ service cloud.firestore {
       return isAdmin() || isAgent();
     }
 
+    // Legacy tickets may omit dueAt. Writers may set a timestamp or clear it with null.
+    function dueAtIsValid() {
+      return !('dueAt' in request.resource.data)
+        || request.resource.data.dueAt == null
+        || request.resource.data.dueAt is timestamp;
+    }
+
     match /tickets/{ticketId} {
       allow read: if isStaff();
 
@@ -45,13 +52,15 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.status in ['open', 'in_progress', 'done', 'closed']
-        && request.resource.data.priority in ['low', 'medium', 'high', 'urgent'];
+        && request.resource.data.priority in ['low', 'medium', 'high', 'urgent']
+        && dueAtIsValid();
 
       allow update: if isWriter()
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.status in ['open', 'in_progress', 'done', 'closed']
-        && request.resource.data.priority in ['low', 'medium', 'high', 'urgent'];
+        && request.resource.data.priority in ['low', 'medium', 'high', 'urgent']
+        && dueAtIsValid();
 
       allow delete: if isAdmin();
 

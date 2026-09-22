@@ -33,6 +33,20 @@ export function asDate(value: unknown): Date {
   return new Date(0);
 }
 
+/** Missing, null, or non-timestamp values become null (legacy tickets have no dueAt). */
+export function asDateOrNull(value: unknown): Date | null {
+  if (value == null) {
+    return null;
+  }
+  if (value instanceof Timestamp) {
+    return value.toDate();
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+  return null;
+}
+
 export function mapTicket(snapshot: DocumentSnapshot<DocumentData>): Ticket {
   const data = snapshot.data() ?? {};
   const assigneeId = data.assigneeId;
@@ -44,6 +58,7 @@ export function mapTicket(snapshot: DocumentSnapshot<DocumentData>): Ticket {
     status: asEnum<TicketStatus>(data.status, TICKET_STATUSES, "open"),
     priority: asEnum<TicketPriority>(data.priority, TICKET_PRIORITIES, "medium"),
     assigneeId: typeof assigneeId === "string" ? assigneeId : null,
+    dueAt: asDateOrNull(data.dueAt),
     createdBy: asString(data.createdBy),
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
