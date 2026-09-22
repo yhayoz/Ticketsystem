@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { listAssignableMembers, listMembers } from "@/lib/members";
 import { withPreviewRole } from "@/lib/preview-role";
-import { canUseWriteChrome } from "@/lib/roles";
+import { canAssignTickets, canUseWriteChrome } from "@/lib/roles";
 import { createTicket } from "@/lib/tickets";
 import {
   TICKET_PRIORITIES,
@@ -22,12 +22,14 @@ export default function NewTicketPage() {
   const router = useRouter();
   const { user, role, configured } = useAuth();
   const canWrite = canUseWriteChrome(role, configured);
+  const canAssign = canWrite && (!configured || canAssignTickets(role));
   const [members, setMembers] = useState<Member[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TicketStatus>("open");
   const [priority, setPriority] = useState<TicketPriority>("medium");
   const [assigneeId, setAssigneeId] = useState("");
+  const [assignToMe, setAssignToMe] = useState(false);
   const [dueOn, setDueOn] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,8 @@ export default function NewTicketPage() {
       return;
     }
 
+    const assignToSelf = assignToMe && canAssign;
+
     setSaving(true);
     setError(null);
     try {
@@ -61,10 +65,11 @@ export default function NewTicketPage() {
           description,
           status,
           priority,
-          assigneeId: assigneeId || null,
+          assigneeId: assignToSelf ? null : assigneeId || null,
           dueAt: dateInputToDueAt(dueOn),
         },
         user.uid,
+        { assignToSelf },
       );
       router.push(`/tickets/${id}`);
     } catch (err) {
@@ -153,22 +158,39 @@ export default function NewTicketPage() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Assignee
-            <select
-              className="field"
-              value={assigneeId}
-              onChange={(event) => setAssigneeId(event.target.value)}
-              disabled={!canWrite || saving}
-            >
-              <option value="">Unassigned</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+              Assignee
+              <select
+                className="field"
+                value={assignToMe ? "" : assigneeId}
+                onChange={(event) => setAssigneeId(event.target.value)}
+                disabled={!canWrite || saving || assignToMe}
+              >
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {canAssign ? (
+              <label className="flex w-fit items-center gap-2 text-sm text-[var(--ink)]">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[var(--accent)]"
+                  checked={assignToMe}
+                  onChange={(event) => setAssignToMe(event.target.checked)}
+                  disabled={saving}
+                />
+                Mir zuweisen
+              </label>
+            ) : null}
+            {assignToMe ? (
+              <p className="text-xs text-[var(--muted)]">Wird dir zugewiesen.</p>
+            ) : null}
+          </div>
           <div className="flex flex-col gap-1 text-xs text-[var(--muted)]">
             <label htmlFor="new-ticket-due-at">Fällig</label>
             <span className="flex items-center gap-2">

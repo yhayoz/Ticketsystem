@@ -7,17 +7,16 @@ const BADGE_BASE =
 
 const STATUS_CLASS: Record<TicketStatus, string> = {
   open: "border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,white)] text-[var(--accent)]",
-  in_progress:
-    "border-[var(--line)] bg-[var(--bg)] text-[var(--ink)]",
-  done: "border-[var(--ink)]/15 bg-[var(--surface)] text-[var(--ink)]",
+  in_progress: "border-sky-200 bg-sky-50 text-sky-900",
+  done: "border-emerald-200 bg-emerald-50 text-emerald-900",
   closed: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
 };
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
   low: "border-[var(--line)] bg-[var(--bg)] text-[var(--muted)]",
-  medium: "border-[var(--line)] bg-[var(--bg)] text-[var(--ink)]",
-  high: "border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_10%,white)] text-[var(--accent)]",
-  urgent: "border-[var(--accent)] bg-[var(--accent)] text-white",
+  medium: "border-amber-300 bg-amber-100 text-amber-950",
+  high: "border-orange-300 bg-orange-100 text-orange-950",
+  urgent: "border-red-700 bg-red-600 text-white",
 };
 
 export function StatusBadge({ status }: { status: TicketStatus }) {

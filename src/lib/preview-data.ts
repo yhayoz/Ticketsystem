@@ -1,4 +1,14 @@
-import type { Comment, Ticket } from "@/types";
+import type { Comment, Member, Ticket } from "@/types";
+
+/** Sample directory so preview detail can show a name instead of an id. */
+export const PREVIEW_MEMBERS: Member[] = [
+  {
+    id: "preview-user",
+    email: "preview@example.com",
+    displayName: "Preview",
+    role: "agent",
+  },
+];
 
 /** UTC end-of-day offset so preview due colors stay stable across server and client. */
 function previewDueAt(offsetDays: number): Date {

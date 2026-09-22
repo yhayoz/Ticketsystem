@@ -69,10 +69,25 @@ export async function getTicket(ticketId: string): Promise<Ticket | null> {
   return mapTicket(snapshot);
 }
 
+/**
+ * Creates a ticket. When `assignToSelf` is set, `assigneeId` is the signed-in
+ * uid from the auth session. A draft or form uid is ignored on that path.
+ */
 export async function createTicket(
   draft: TicketDraft,
   createdBy: string,
+  options: { assignToSelf?: boolean } = {},
 ): Promise<string> {
+  const sessionUid = getClientAuth().currentUser?.uid ?? null;
+  let assigneeId = draft.assigneeId;
+
+  if (options.assignToSelf) {
+    if (!sessionUid) {
+      throw new Error("Sign in to assign this ticket to yourself.");
+    }
+    assigneeId = sessionUid;
+  }
+
   const db = getClientDb();
   const now = serverTimestamp();
   const ref = await addDoc(collection(db, TICKETS_COLLECTION), {
@@ -80,7 +95,7 @@ export async function createTicket(
     description: draft.description.trim(),
     status: draft.status,
     priority: draft.priority,
-    assigneeId: draft.assigneeId,
+    assigneeId,
     dueAt: dueAtToFirestore(draft.dueAt),
     createdBy,
     createdAt: now,

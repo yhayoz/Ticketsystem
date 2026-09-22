@@ -1,3 +1,5 @@
+import type { Member } from "@/types";
+
 export function formatDateTime(value: Date): string {
   if (!value || value.getTime() === 0) {
     return "—";
@@ -71,4 +73,62 @@ export function roleLabel(role: string | null): string {
     return "No role";
   }
   return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function usableName(
+  value: string | null | undefined,
+  uid: string,
+  email: string,
+): string {
+  const text = value?.trim() ?? "";
+  if (!text || text === uid || text === email) {
+    return "";
+  }
+  return text;
+}
+
+function firstText(...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    const text = value?.trim();
+    if (text) {
+      return text;
+    }
+  }
+  return "";
+}
+
+/** Shorten a raw Firebase uid. Names and emails are shown in full. */
+export function shortUid(uid: string): string {
+  if (uid.length <= 12) {
+    return uid;
+  }
+  return `${uid.slice(0, 8)}…`;
+}
+
+/**
+ * Prefer a member display name, then the signed-in profile name,
+ * then email, then a short uid.
+ */
+export function memberLabel(
+  members: readonly Member[],
+  uid: string,
+  profile?: { displayName?: string | null; email?: string | null } | null,
+): string {
+  const member = members.find((entry) => entry.id === uid);
+  const email = firstText(member?.email, profile?.email);
+  const fromDirectory = usableName(member?.displayName, uid, email);
+  if (fromDirectory) {
+    return fromDirectory;
+  }
+  const fromProfile = usableName(profile?.displayName, uid, email);
+  if (fromProfile) {
+    return fromProfile;
+  }
+  if (email) {
+    return email;
+  }
+  if (!uid) {
+    return "—";
+  }
+  return shortUid(uid);
 }
