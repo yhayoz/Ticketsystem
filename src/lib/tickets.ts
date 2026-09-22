@@ -12,7 +12,7 @@ import {
   where,
   type QueryConstraint,
 } from "firebase/firestore";
-import { getClientDb } from "@/lib/firebase/client";
+import { getClientAuth, getClientDb } from "@/lib/firebase/client";
 import { TICKETS_COLLECTION, mapTicket } from "@/lib/firestore-map";
 import type { Ticket, TicketDraft, TicketFilters, TicketUpdates } from "@/types";
 
@@ -104,6 +104,23 @@ export async function updateTicket(
   }
 
   await updateDoc(doc(db, TICKETS_COLLECTION, ticketId), payload);
+}
+
+/**
+ * Assigns the ticket to the signed-in user.
+ * The uid is read from the auth session and cannot be passed in.
+ */
+export async function assignTicketToSelf(ticketId: string): Promise<void> {
+  const uid = getClientAuth().currentUser?.uid;
+  if (!uid) {
+    throw new Error("Sign in to assign this ticket to yourself.");
+  }
+
+  const db = getClientDb();
+  await updateDoc(doc(db, TICKETS_COLLECTION, ticketId), {
+    assigneeId: uid,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function deleteTicket(ticketId: string): Promise<void> {
